@@ -6,7 +6,7 @@ import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { TacticalBadge } from "@/components/ui/TacticalBadge";
 import { Globe2, Radio, Compass, Shield, MapPin, AlertCircle, ArrowUpRight } from "lucide-react";
-import { SafeGlobal3DView as Global3DView } from "@/components/visuals/SafeGlobal3DView";
+import SatelliteGlobeView from "@/components/visuals/SatelliteGlobeView";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { incidentService } from "@/lib/services/incidentService";
 import { IntelligenceEvent } from "@/lib/types/isie";
@@ -90,7 +90,7 @@ export default function GlobalSituationPage() {
 
           <div className="flex items-center gap-2 sm:gap-3">
             <TacticalBadge variant="cyan" size="sm" pulse>
-              SYNOPTIC SCAN: ACTIVE // {incidents.length} HAZARD NODES
+              DEMO EXERCISE // {incidents.length} SAMPLE SIGNALS
             </TacticalBadge>
             <Link
               href="/geospatial"
@@ -121,16 +121,17 @@ export default function GlobalSituationPage() {
         </div>
 
         {/* Main 3D Global Space */}
-        <div className="h-[380px] sm:h-[480px] w-full rounded-sm border border-white/10 relative overflow-hidden bg-isie-bg-deep shadow-2xl min-w-0">
+        <div className="h-[480px] sm:h-[560px] w-full rounded-sm border border-white/10 relative overflow-hidden bg-isie-bg-deep shadow-2xl min-w-0">
           {mounted ? (
-            <Global3DView
+            <SatelliteGlobeView
               incidents={filteredIncidents}
+              selectedRegion={selectedRegion}
               selectedIncidentId={selectedIncidentId}
               onSelectIncident={(inc) => setSelectedIncidentId(inc?.id || null)}
             />
           ) : (
             <div className="w-full h-full min-h-[320px] bg-isie-bg-deep flex items-center justify-center font-mono text-xs text-isie-cyan/60 animate-pulse">
-              INITIALIZING 3D SPATIAL ENGINE...
+              INITIALIZING SATELLITE GLOBE...
             </div>
           )}
         </div>
@@ -140,7 +141,7 @@ export default function GlobalSituationPage() {
           <div className="p-4 bg-isie-panel border border-white/10 rounded-sm min-w-0 flex flex-col justify-between space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-white/10">
               <span className="font-mono text-xs uppercase tracking-wider text-white font-semibold">
-                Emerging Signals Stream
+                Sample Exercise Signals
               </span>
               <TacticalBadge variant="orange" size="sm">
                 {incidents.length} SIGNALS
@@ -172,10 +173,10 @@ export default function GlobalSituationPage() {
           <div className="p-4 bg-isie-panel border border-white/10 rounded-sm flex flex-col justify-between space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-white/10">
               <span className="font-mono text-xs uppercase tracking-wider text-white font-semibold">
-                Cross-Region Correlation
+                Illustrative Correlations
               </span>
-              <TacticalBadge variant="safe" size="sm">
-                SYNCHRONIZED
+              <TacticalBadge variant="warning" size="sm">
+                DEMO VALUES
               </TacticalBadge>
             </div>
             <div className="space-y-2 font-mono text-[11px] text-isie-text-secondary">
