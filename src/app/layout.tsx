@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import "mapbox-gl/dist/mapbox-gl.css";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth/AuthContext";
 
