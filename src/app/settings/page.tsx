@@ -5,11 +5,10 @@ import { AppShell } from "@/components/layout/AppShell";
 import { SlidersHorizontal, Globe, Eye, Save } from "lucide-react";
 import { TacticalBadge } from "@/components/ui/TacticalBadge";
 import { TacticalButton } from "@/components/ui/TacticalButton";
-
-const PREFERENCES_KEY = "isie_display_preferences";
+import { DISPLAY_PREFERENCES_KEY } from "@/lib/utils/displayPreferences";
 
 interface DisplayPreferences {
-  mapDefault: string;
+  mapDefault: "3D_GLOBE" | "2D_MAP" | "SPLIT_VIEW";
   reducedMotion: boolean;
   highContrast: boolean;
 }
@@ -27,7 +26,7 @@ function isDisplayPreferences(value: unknown): value is DisplayPreferences {
 }
 
 export default function SettingsPage() {
-  const [mapDefault, setMapDefault] = useState("3D_GLOBE");
+  const [mapDefault, setMapDefault] = useState<DisplayPreferences["mapDefault"]>("3D_GLOBE");
   const [reducedMotion, setReducedMotion] = useState(false);
   const [highContrast, setHighContrast] = useState(false);
   const [savedFeedback, setSavedFeedback] = useState(false);
@@ -35,11 +34,11 @@ export default function SettingsPage() {
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(PREFERENCES_KEY);
+      const stored = localStorage.getItem(DISPLAY_PREFERENCES_KEY);
       if (!stored) return;
       const parsed: unknown = JSON.parse(stored);
       if (!isDisplayPreferences(parsed)) {
-        localStorage.removeItem(PREFERENCES_KEY);
+        localStorage.removeItem(DISPLAY_PREFERENCES_KEY);
         return;
       }
       setMapDefault(parsed.mapDefault);
@@ -56,7 +55,7 @@ export default function SettingsPage() {
   const handleSave = () => {
     const preferences: DisplayPreferences = { mapDefault, reducedMotion, highContrast };
     try {
-      localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
+      localStorage.setItem(DISPLAY_PREFERENCES_KEY, JSON.stringify(preferences));
       document.documentElement.dataset.isieReducedMotion = String(reducedMotion);
       document.documentElement.dataset.isieHighContrast = String(highContrast);
       setSaveError("");
@@ -114,7 +113,12 @@ export default function SettingsPage() {
                 </label>
                 <select
                   value={mapDefault}
-                  onChange={(e) => setMapDefault(e.target.value)}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "3D_GLOBE" || value === "2D_MAP" || value === "SPLIT_VIEW") {
+                      setMapDefault(value);
+                    }
+                  }}
                   className="w-full bg-isie-panel-light border border-white/10 p-2 text-white outline-none rounded-xs"
                 >
                   <option value="3D_GLOBE">3D Rotating Globe (Three.js)</option>

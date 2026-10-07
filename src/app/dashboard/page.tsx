@@ -19,6 +19,7 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { incidentService } from "@/lib/services/incidentService";
 import { IntelligenceEvent } from "@/lib/types/isie";
 import { hasPermission } from "@/lib/auth/roles";
+import { readSavedMapDefault } from "@/lib/utils/displayPreferences";
 
 const Global3DView = dynamic(() => import("@/components/visuals/SatelliteGlobeView"), {
   ssr: false,
@@ -41,6 +42,8 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setMounted(true);
+    const savedMapDefault = readSavedMapDefault();
+    if (savedMapDefault) setMapMode(savedMapDefault);
   }, []);
 
   useEffect(() => {
