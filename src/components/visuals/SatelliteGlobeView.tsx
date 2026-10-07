@@ -7,6 +7,7 @@ import {
   Search,
   Crosshair,
   Globe2,
+  ExternalLink,
   MapPin,
   Moon,
   Satellite,
@@ -14,6 +15,7 @@ import {
   Sun,
 } from "lucide-react";
 import type { IntelligenceEvent } from "@/lib/types/isie";
+import type { EonetEvent } from "@/lib/types/eonet";
 
 type Surface = "SATELLITE" | "TACTICAL" | "NIGHT";
 
@@ -103,6 +105,10 @@ interface SatelliteGlobeViewProps {
   selectedRegion?: string;
   selectedIncidentId?: string | null;
   onSelectIncident?: (incident: IntelligenceEvent | null) => void;
+  eonetEvents?: EonetEvent[];
+  selectedEonetId?: string | null;
+  onSelectEonetEvent?: (event: EonetEvent | null) => void;
+  isDemoMode?: boolean;
 }
 
 export default function SatelliteGlobeView({
@@ -110,6 +116,10 @@ export default function SatelliteGlobeView({
   selectedRegion = "ALL",
   selectedIncidentId = null,
   onSelectIncident = () => {},
+  eonetEvents = [],
+  selectedEonetId = null,
+  onSelectEonetEvent = () => {},
+  isDemoMode = false,
 }: SatelliteGlobeViewProps) {
   const mapRef = useRef<MapRef>(null);
   const [surface, setSurface] = useState<Surface>("SATELLITE");
@@ -120,6 +130,7 @@ export default function SatelliteGlobeView({
   const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
   const mapStyle = useMemo(() => getMapStyle(surface, Boolean(token)), [surface, token]);
   const selectedIncident = incidents.find((incident) => incident.id === selectedIncidentId);
+  const selectedEonetEvent = eonetEvents.find((event) => event.id === selectedEonetId);
   const target = REGION_TARGETS[selectedRegion] ?? REGION_TARGETS.ALL;
 
   useEffect(() => {
@@ -167,6 +178,21 @@ export default function SatelliteGlobeView({
     });
   }, [selectedIncident]);
 
+  useEffect(() => {
+    if (!selectedEonetEvent?.location) return;
+    mapRef.current?.flyTo({
+      center: [selectedEonetEvent.location.longitude, selectedEonetEvent.location.latitude],
+      zoom: Math.max(mapRef.current.getZoom(), 4),
+      pitch: 35,
+      duration: 1200,
+      essential: true,
+    });
+  }, [
+    selectedEonetId,
+    selectedEonetEvent?.location?.latitude,
+    selectedEonetEvent?.location?.longitude,
+  ]);
+
   const resetView = useCallback(() => {
     mapRef.current?.flyTo({
       center: [target.longitude, target.latitude],
@@ -177,7 +203,8 @@ export default function SatelliteGlobeView({
       essential: true,
     });
     onSelectIncident(null);
-  }, [onSelectIncident, target]);
+    onSelectEonetEvent(null);
+  }, [onSelectEonetEvent, onSelectIncident, target]);
 
   const handleMapError = useCallback((event: ErrorEvent) => {
     const message = event.error?.message ?? "The map provider could not load imagery.";
@@ -298,6 +325,26 @@ export default function SatelliteGlobeView({
             </button>
           </Marker>
         ))}
+        {eonetEvents.map((event) => event.location && (
+          <Marker
+            key={`eonet-${event.id}`}
+            longitude={event.location.longitude}
+            latitude={event.location.latitude}
+            anchor="center"
+            onClick={(clickEvent) => {
+              clickEvent.originalEvent.stopPropagation();
+              onSelectEonetEvent(event);
+            }}
+          >
+            <button
+              type="button"
+              aria-label={`NASA EONET event: ${event.title}`}
+              className="group flex h-8 w-8 items-center justify-center rounded-full border border-cyan-100/50 bg-cyan-950/90 shadow-[0_0_18px_rgba(0,0,0,0.8)] transition-transform hover:scale-125"
+            >
+              <span className="h-3 w-3 rounded-full bg-cyan-300 ring-4 ring-cyan-200/20" />
+            </button>
+          </Marker>
+        ))}
         {selectedIncident && (
           <Popup
             longitude={selectedIncident.coordinates.lng}
@@ -313,8 +360,43 @@ export default function SatelliteGlobeView({
               <p className="mt-1 text-xs font-semibold">{selectedIncident.title}</p>
               <p className="mt-1 text-[10px] text-slate-600">{selectedIncident.locationName}</p>
               <p className="mt-2 border-t border-slate-200 pt-1 font-mono text-[8px] uppercase tracking-wider text-amber-700">
-                Demo exercise record · not a verified live incident
+                {isDemoMode ? "Demo exercise record · not a verified live incident" : "User-reported workspace record · not independently verified"}
               </p>
+            </div>
+          </Popup>
+        )}
+        {selectedEonetEvent?.location && (
+          <Popup
+            longitude={selectedEonetEvent.location.longitude}
+            latitude={selectedEonetEvent.location.latitude}
+            anchor="bottom"
+            onClose={() => onSelectEonetEvent(null)}
+            closeButton
+            closeOnClick={false}
+            className="isie-map-popup"
+          >
+            <div className="min-w-48 text-slate-900">
+              <p className="font-mono text-[10px] font-bold">NASA EONET · OPEN EVENT</p>
+              <p className="mt-1 text-xs font-semibold">{selectedEonetEvent.title}</p>
+              <p className="mt-1 text-[10px] text-slate-600">{selectedEonetEvent.categories.join(", ") || "Natural event"}</p>
+              {selectedEonetEvent.observedAt && (
+                <p className="mt-1 text-[10px] text-slate-600">
+                  Latest catalog observation: {new Date(selectedEonetEvent.observedAt).toLocaleString(undefined, { timeZone: "UTC", timeZoneName: "short" })}
+                </p>
+              )}
+              <p className="mt-2 border-t border-slate-200 pt-1 font-mono text-[8px] uppercase tracking-wider text-cyan-800">
+                NASA EONET catalog entry · not a complete hazard inventory
+              </p>
+              {selectedEonetEvent.sourceUrl && (
+                <a
+                  href={selectedEonetEvent.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold text-cyan-800 hover:underline"
+                >
+                  Open event source <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
             </div>
           </Popup>
         )}
@@ -400,7 +482,10 @@ export default function SatelliteGlobeView({
       )}
 
       <div className="pointer-events-none absolute bottom-3 right-3 z-10 rounded border border-amber-300/20 bg-[#080e17]/90 px-2.5 py-1.5 font-mono text-[8px] uppercase tracking-wider text-amber-200/90 backdrop-blur">
-        Demo incident markers · not live crisis data
+        {isDemoMode
+          ? "Demo incident markers · not live"
+          : "Workspace incident markers · unverified"}
+        {eonetEvents.length > 0 && " · NASA EONET natural-event catalog"}
       </div>
     </div>
   );

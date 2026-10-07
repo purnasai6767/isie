@@ -15,6 +15,22 @@ body {
   overflow-x: hidden;
 }
 
+html[data-isie-reduced-motion="true"] *,
+html[data-isie-reduced-motion="true"] *::before,
+html[data-isie-reduced-motion="true"] *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+html[data-isie-high-contrast="true"] .text-isie-text-dim,
+html[data-isie-high-contrast="true"] .text-isie-text-muted,
+html[data-isie-high-contrast="true"] .text-slate-500,
+html[data-isie-high-contrast="true"] .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
 /* ISIE Geographic Basemap Styling (OpenStreetMap & Satellite) */
 .map-style-tactical .leaflet-tile-pane {
   filter: brightness(0.85) contrast(1.15) saturate(0.8) hue-rotate(190deg);

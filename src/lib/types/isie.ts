@@ -112,7 +112,7 @@ export interface RelocationIntelligence {
   evacuationRoutesIdentified: {
     routeId: string;
     corridorName: string;
-    status: "OPEN" | "IMPEDED" | "SEVERED";
+    status: "OPEN" | "IMPEDED" | "SEVERED" | "UNKNOWN";
     clearanceBottlenecks: string[];
   }[];
   designatedShelters: {

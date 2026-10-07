@@ -1,21 +1,72 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
-import { SlidersHorizontal, Monitor, Map, Globe, Bell, Eye, Save } from "lucide-react";
+import { SlidersHorizontal, Globe, Eye, Save } from "lucide-react";
 import { TacticalBadge } from "@/components/ui/TacticalBadge";
 import { TacticalButton } from "@/components/ui/TacticalButton";
 
+const PREFERENCES_KEY = "isie_display_preferences";
+
+interface DisplayPreferences {
+  mapDefault: string;
+  reducedMotion: boolean;
+  highContrast: boolean;
+}
+
+function isDisplayPreferences(value: unknown): value is DisplayPreferences {
+  if (typeof value !== "object" || value === null) return false;
+  return (
+    "mapDefault" in value &&
+    (value.mapDefault === "3D_GLOBE" || value.mapDefault === "2D_MAP" || value.mapDefault === "SPLIT_VIEW") &&
+    "reducedMotion" in value &&
+    typeof value.reducedMotion === "boolean" &&
+    "highContrast" in value &&
+    typeof value.highContrast === "boolean"
+  );
+}
+
 export default function SettingsPage() {
-  const [themeMode, setThemeMode] = useState("DARK_TACTICAL");
   const [mapDefault, setMapDefault] = useState("3D_GLOBE");
   const [reducedMotion, setReducedMotion] = useState(false);
   const [highContrast, setHighContrast] = useState(false);
   const [savedFeedback, setSavedFeedback] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(PREFERENCES_KEY);
+      if (!stored) return;
+      const parsed: unknown = JSON.parse(stored);
+      if (!isDisplayPreferences(parsed)) {
+        localStorage.removeItem(PREFERENCES_KEY);
+        return;
+      }
+      setMapDefault(parsed.mapDefault);
+      setReducedMotion(parsed.reducedMotion);
+      setHighContrast(parsed.highContrast);
+      document.documentElement.dataset.isieReducedMotion = String(parsed.reducedMotion);
+      document.documentElement.dataset.isieHighContrast = String(parsed.highContrast);
+    } catch (error) {
+      console.error("Could not restore local display preferences.", error);
+      setSaveError("Could not read saved display preferences from this browser.");
+    }
+  }, []);
 
   const handleSave = () => {
-    setSavedFeedback(true);
-    setTimeout(() => setSavedFeedback(false), 2500);
+    const preferences: DisplayPreferences = { mapDefault, reducedMotion, highContrast };
+    try {
+      localStorage.setItem(PREFERENCES_KEY, JSON.stringify(preferences));
+      document.documentElement.dataset.isieReducedMotion = String(reducedMotion);
+      document.documentElement.dataset.isieHighContrast = String(highContrast);
+      setSaveError("");
+      setSavedFeedback(true);
+      window.setTimeout(() => setSavedFeedback(false), 2500);
+    } catch (error) {
+      console.error("Could not save local display preferences.", error);
+      setSavedFeedback(false);
+      setSaveError("Could not save preferences to this browser. Check local storage availability.");
+    }
   };
 
   return (
@@ -31,7 +82,7 @@ export default function SettingsPage() {
               </h1>
             </div>
             <p className="text-xs text-isie-text-secondary">
-              Configure default map projection engines, visual density, accessibility overrides, and telemetry polling intervals.
+              Preferences are saved to this browser only. Map selection is a saved preference; it does not connect data providers or change access permissions.
             </p>
           </div>
 
@@ -59,7 +110,7 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs">
               <div className="space-y-2">
                 <label className="text-isie-text-secondary uppercase text-[11px]">
-                  Default Viewport Projection
+                  Preferred Map View (browser preference)
                 </label>
                 <select
                   value={mapDefault}
@@ -74,12 +125,10 @@ export default function SettingsPage() {
 
               <div className="space-y-2">
                 <label className="text-isie-text-secondary uppercase text-[11px]">
-                  Telemetry Render Density
+                  Display Density
                 </label>
-                <select className="w-full bg-isie-panel-light border border-white/10 p-2 text-white outline-none rounded-xs">
-                  <option>High Precision (100% Vector Detail)</option>
-                  <option>Balanced Mission Control</option>
-                  <option>Performance Mode (Low Power)</option>
+                <select disabled className="w-full bg-isie-panel-light border border-white/10 p-2 text-isie-text-dim outline-none rounded-xs">
+                  <option>Not configurable in this prototype</option>
                 </select>
               </div>
             </div>
@@ -102,7 +151,7 @@ export default function SettingsPage() {
                 <div>
                   <div className="text-white font-semibold">Reduced Motion Mode</div>
                   <div className="text-[11px] text-isie-text-dim">
-                    Disables continuous globe rotation and intense volumetric background particles
+                    Reduces CSS animation and transition motion across the interface
                   </div>
                 </div>
                 <input
@@ -117,7 +166,7 @@ export default function SettingsPage() {
                 <div>
                   <div className="text-white font-semibold">High Contrast Borders</div>
                   <div className="text-[11px] text-isie-text-dim">
-                    Increases line width and tactical border opacity for harsh lighting environments
+                    Increases contrast for muted interface text
                   </div>
                 </div>
                 <input
@@ -133,7 +182,7 @@ export default function SettingsPage() {
           {/* Save Action */}
           <div className="flex items-center justify-between pt-2">
             <span className="font-mono text-xs text-emerald-400">
-              {savedFeedback && "✓ PREFERENCES SAVED TO LOCAL SESSION"}
+              {savedFeedback && "PREFERENCES SAVED TO THIS BROWSER"}
             </span>
             <TacticalButton
               variant="primary"
@@ -144,6 +193,7 @@ export default function SettingsPage() {
               SAVE CONFIGURATION
             </TacticalButton>
           </div>
+          {saveError && <p role="alert" className="text-right font-mono text-xs text-red-300">{saveError}</p>}
         </div>
       </div>
     </AppShell>

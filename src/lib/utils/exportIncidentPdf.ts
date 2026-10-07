@@ -143,13 +143,13 @@ export function exportIncidentReportPdf(
         color: [220, 38, 38], // red-600
       },
       {
-        label: "RELOCATION INDEX",
-        value: `${incident.relocationScore || 75} / 100`,
+        label: "REPORTED RELOCATION SCORE",
+        value: incident.relocationScore === undefined ? "NOT PROVIDED" : `${incident.relocationScore} / 100`,
         color: [234, 88, 12], // orange-600
       },
       {
-        label: "CARRYING CAPACITY",
-        value: incident.carryingCapacityStatus || "CRITICAL",
+        label: "REPORTED CAPACITY STATUS",
+        value: incident.carryingCapacityStatus || "NOT PROVIDED",
         color: [180, 83, 9], // amber-700
       },
       {
@@ -181,14 +181,14 @@ export function exportIncidentReportPdf(
 
     y += tileH + 6;
 
-    // 5. SITUATIONAL SUMMARY & ASSESSMENT
+    // 5. USER-SUBMITTED REPORT SUMMARY
     checkPageBreak(35);
     doc.setFillColor(15, 23, 42);
     doc.rect(margin, y, contentWidth, 5.5, "F");
     doc.setFont("courier", "bold");
     doc.setFontSize(8);
     doc.setTextColor(255, 255, 255);
-    doc.text("1.0 SITUATIONAL EVOLUTION & OPERATIONAL ASSESSMENT", margin + 3, y + 3.8);
+    doc.text("1.0 USER-SUBMITTED REPORT SUMMARY", margin + 3, y + 3.8);
     y += 7.5;
 
     doc.setFont("helvetica", "normal");
@@ -199,24 +199,24 @@ export function exportIncidentReportPdf(
     doc.text(splitSummary, margin + 2, y);
     y += splitSummary.length * 4.2 + 4;
 
-    // 6. GEOGRAPHIC & INFRASTRUCTURE DOSSIER
+    // 6. REPORTED GEOGRAPHIC & INFRASTRUCTURE DETAILS
     checkPageBreak(45);
     doc.setFillColor(15, 23, 42);
     doc.rect(margin, y, contentWidth, 5.5, "F");
     doc.setFont("courier", "bold");
     doc.setFontSize(8);
     doc.setTextColor(255, 255, 255);
-    doc.text("2.0 GEOSPATIAL COORDINATES & INFRASTRUCTURE CONTEXT", margin + 3, y + 3.8);
+    doc.text("2.0 REPORTED COORDINATES & INFRASTRUCTURE DETAILS", margin + 3, y + 3.8);
     y += 7.5;
 
     const geoRows = [
-      ["Operational Target", incident.locationName],
-      ["District / Sector", `${incident.district || "Sector Alpha"}, ${incident.state || "National Division"}`],
+      ["Reported Location", incident.locationName],
+      ["District / Sector", [incident.district, incident.state].filter(Boolean).join(", ") || "NOT PROVIDED"],
       ["Coordinates (WGS-84)", `${incident.coordinates.lat.toFixed(5)}°N, ${incident.coordinates.lng.toFixed(5)}°E`],
-      ["Elevation Datum", incident.coordinates.elevationMeters ? `${incident.coordinates.elevationMeters} meters ASL` : "Calculated from SRTM 30m DEM"],
-      ["Surface Area Affected", incident.affectedAreaKm2 ? `${incident.affectedAreaKm2} km²` : "Sector perimeter active"],
-      ["Infrastructure Criticality", incident.infrastructureImpact || "Access corridors and river bridges monitored for severance"],
-      ["Critical Facilities Hit", incident.criticalFacilitiesAffected ? `${incident.criticalFacilitiesAffected} vital installations reported` : "Nil direct infrastructure strikes verified"],
+      ["Elevation (user-entered)", incident.coordinates.elevationMeters === undefined ? "NOT PROVIDED" : `${incident.coordinates.elevationMeters} meters`],
+      ["Reported Affected Area", incident.affectedAreaKm2 === undefined ? "NOT PROVIDED" : `${incident.affectedAreaKm2} km²`],
+      ["Infrastructure Impact (reported)", incident.infrastructureImpact || "NOT PROVIDED"],
+      ["Facilities Affected (reported)", incident.criticalFacilitiesAffected === undefined ? "NOT PROVIDED" : String(incident.criticalFacilitiesAffected)],
     ];
 
     doc.setFontSize(8);
@@ -327,7 +327,7 @@ export function exportIncidentReportPdf(
       doc.setFontSize(7);
       doc.setTextColor(148, 163, 184);
       doc.text(
-        "ISIE CRISIS MANAGEMENT PLATFORM — OFFICIAL SITUATION SUMMARY — CONFIDENTIAL DISPATCH",
+        "ISIE PROTOTYPE — USER-SUBMITTED RECORD — NOT AN OFFICIAL SITUATION REPORT",
         margin,
         pageHeight - 11
       );

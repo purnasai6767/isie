@@ -28,7 +28,7 @@ export default function HelpPage() {
               </h1>
             </div>
             <p className="text-xs text-isie-text-secondary">
-              Operational workflows, decision intelligence loop standards, and navigation shortcuts.
+              Prototype workflows, data limitations, and navigation shortcuts.
             </p>
           </div>
 
@@ -63,7 +63,7 @@ export default function HelpPage() {
           </div>
 
           <p className="text-xs text-isie-text-secondary leading-relaxed">
-            ISIE serves national command authorities, state disaster management offices, and field dispatchers. It integrates spaceborne SAR imagery, Doppler radar precipitation vectors, river hydrographs, and census demographics to generate actionable evacuation and resource deployment decisions.
+            This prototype demonstrates map navigation, a limited NASA EONET natural-event catalog, synthetic tabletop scenarios, and authenticated workspace records. It does not connect national satellite, weather-radar, river-gauge, census, shelter, or routing systems and does not generate operational response decisions.
           </p>
         </div>
 
@@ -95,7 +95,7 @@ export default function HelpPage() {
             ● Demo Environment & Prototype Notice
           </div>
           <p className="text-[11px] text-isie-text-secondary leading-relaxed">
-            Demo mode uses synthetic exercise data. Authenticated workspace records are user-entered and are not independently verified. No IMD, CWC, ISRO, Copernicus, population, shelter, routing, or live hazard provider is connected.
+            Demo mode uses synthetic exercise data. Authenticated workspace records are user-entered and are not independently verified. NASA EONET is a limited natural-event catalog, not a complete hazard feed or emergency alert service. No IMD, CWC, ISRO, Copernicus, population, shelter, or routing provider is connected.
           </p>
         </div>
       </div>

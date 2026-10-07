@@ -34,12 +34,12 @@ export const DEMO_CREDENTIALS = {
 
 export const DEFAULT_DEMO_USER: AuthUser = {
   id: "usr-demo-01",
-  name: "Operations Director (Trident Actual)",
+  name: "Prototype Demo Operator",
   email: "demo@isie.ai",
-  role: "Command / Decision Maker",
-  organization: "National Crisis Command / CredForge",
-  clearance: "Strategic Command Level 4",
-  callsign: "DIR-OP",
+  role: "DEMO VIEWER",
+  organization: "Demo profile",
+  clearance: "No real clearance assigned",
+  callsign: "DEMO",
   isDemo: true,
 };
 
@@ -74,9 +74,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: fbUser.displayName || synced?.displayName || "Tactical Operator",
           email: fbUser.email || "",
           role: synced?.role || "VIEWER",
-          organization: synced?.organization || "National Crisis Command",
-          clearance: synced?.clearance || "Level 4 Strategic",
-          callsign: synced?.callsign || (fbUser.displayName?.slice(0, 4).toUpperCase() || "OPR") + "-TAC",
+          organization: synced?.organization || "Not configured",
+          clearance: synced?.clearance || "Not assigned",
+          callsign: synced?.callsign || "Not assigned",
           isDemo: false,
           avatarUrl: fbUser.photoURL || undefined,
           provider: fbUser.providerData?.[0]?.providerId || "firebase",
@@ -92,7 +92,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const demoOptedIn = localStorage.getItem(DEMO_OPT_IN_KEY) === "true";
           if (stored && demoOptedIn) {
             const parsed = JSON.parse(stored) as AuthUser;
-            setUser(parsed.isDemo ? parsed : null);
+            const restoredDemo = parsed.isDemo ? DEFAULT_DEMO_USER : null;
+            setUser(restoredDemo);
+            if (restoredDemo) localStorage.setItem(STORAGE_KEY, JSON.stringify(restoredDemo));
           } else {
             localStorage.removeItem(STORAGE_KEY);
             localStorage.removeItem(DEMO_OPT_IN_KEY);
@@ -119,9 +121,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: result.user.displayName || synced?.displayName || "Operator",
           email: result.user.email || "",
           role: synced?.role || "VIEWER",
-          organization: synced?.organization || "National Crisis Center",
-          clearance: synced?.clearance || "Strategic Level 4",
-          callsign: synced?.callsign || "DIR-GOOGLE",
+          organization: synced?.organization || "Not configured",
+          clearance: synced?.clearance || "Not assigned",
+          callsign: synced?.callsign || "Not assigned",
           isDemo: false,
           avatarUrl: result.user.photoURL || undefined,
           provider: "google",
@@ -186,9 +188,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         name: credential.user.displayName || synced?.displayName || email.split("@")[0].toUpperCase(),
         email: credential.user.email || email,
         role: synced?.role || "VIEWER",
-        organization: synced?.organization || "National Crisis Command",
-        clearance: synced?.clearance || "Level 3 Command",
-        callsign: synced?.callsign || "TAC-CMD",
+        organization: synced?.organization || "Not configured",
+        clearance: synced?.clearance || "Not assigned",
+        callsign: synced?.callsign || "Not assigned",
         isDemo: false,
         provider: "password",
       };
@@ -235,9 +237,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const synced = await syncUserProfile(cred.user, {
           displayName: data.name,
           role: "VIEWER",
-          organization: data.organization || "National Crisis Command",
-          clearance: "Strategic Operator Level 3",
-          callsign: (data.name.slice(0, 4) || "OPER").toUpperCase() + "-01",
+          organization: data.organization || "Not configured",
+          clearance: "Not assigned",
+          callsign: "Not assigned",
         });
 
         const authedUser: AuthUser = {
@@ -245,9 +247,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: data.name || synced?.displayName || "Operator",
           email: cred.user.email || data.email,
           role: synced?.role || "VIEWER",
-          organization: synced?.organization || data.organization || "National Crisis Command",
-          clearance: synced?.clearance || "Strategic Operator Level 3",
-          callsign: synced?.callsign || "OPER-01",
+          organization: synced?.organization || data.organization || "Not configured",
+          clearance: synced?.clearance || "Not assigned",
+          callsign: synced?.callsign || "Not assigned",
           isDemo: false,
           provider: "password",
         };

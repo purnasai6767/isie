@@ -304,13 +304,13 @@ export const TopCommandBar: React.FC<TopCommandBarProps> = ({
           <button
             onClick={() => setProfileOpen(!profileOpen)}
             className="flex items-center gap-2 p-1.5 bg-isie-panel hover:bg-isie-panel-elevated border border-white/10 hover:border-isie-cyan/40 rounded-sm transition-colors"
-            title="Strategic Command Profile"
+            title="Prototype Account Profile"
           >
             <div className="w-6 h-6 rounded-xs bg-slate-800 border border-white/20 flex items-center justify-center font-mono text-xs font-bold text-isie-cyan">
               <User className="w-3.5 h-3.5" />
             </div>
             <span className="hidden sm:inline font-mono text-xs text-isie-text-primary tracking-wider font-semibold">
-              {user?.callsign || "DIR-OP"}
+              {user?.callsign || "ACCOUNT"}
             </span>
             <ChevronDown className="w-3 h-3 text-isie-text-muted" />
           </button>
@@ -320,17 +320,17 @@ export const TopCommandBar: React.FC<TopCommandBarProps> = ({
               {/* Profile Card Header */}
               <div className="pb-3 mb-3 border-b border-white/10">
                 <div className="font-mono text-xs font-bold text-white uppercase">
-                  {user?.name || "Demo User"}
+                  {user?.name || "Account"}
                 </div>
                 <div className="text-[11px] font-mono text-amber-400 mt-0.5">
-                  {user?.role || "Command / Decision Maker"}
+                  {user?.role || "Not assigned"}
                 </div>
                 <div className="text-[10px] font-mono text-isie-text-dim mt-0.5">
-                  {user?.email || "demo@isie.ai"}
+                  {user?.email || "—"}
                 </div>
                 <div className="mt-2">
                   <TacticalBadge variant="cyan" size="sm">
-                    {user?.clearance || "Level 4 Clearance"}
+                    {user?.clearance || "Not assigned"}
                   </TacticalBadge>
                 </div>
               </div>
@@ -343,7 +343,7 @@ export const TopCommandBar: React.FC<TopCommandBarProps> = ({
                   className="flex items-center gap-2.5 px-2.5 py-1.5 text-isie-text-secondary hover:text-white hover:bg-white/5 rounded-xs transition-colors"
                 >
                   <User className="w-3.5 h-3.5 text-isie-cyan" />
-                  <span>Dossier Profile</span>
+                  <span>Account Profile</span>
                 </Link>
 
                 <Link

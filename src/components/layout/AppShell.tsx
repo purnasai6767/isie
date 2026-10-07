@@ -88,8 +88,8 @@ export const AppShell: React.FC<AppShellProps> = ({
             {isDemoMode
               ? "Explicit demo mode · synthetic exercise records · not live or verified"
               : user
-                ? "Workspace records only · no external hazard, population, capacity, or routing feeds verified"
-                : "No authenticated data provider · no operational incident or telemetry data available"}
+                ? "Workspace reports are unverified · NASA EONET is a limited public catalog, not an official alert feed"
+                : "No workspace account · NASA EONET catalog only; no operational incident or telemetry service"}
           </div>
           {children}
         </main>

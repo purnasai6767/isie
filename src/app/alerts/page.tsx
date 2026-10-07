@@ -16,27 +16,74 @@ export default function AlertCenterPage() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [filterSeverity, setFilterSeverity] = useState<string>("ALL");
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [acting, setActing] = useState(false);
 
   useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setLoadError("");
     alertService.getActiveAlerts(isDemoMode).then((data) => {
+      if (!active) return;
       setAlerts(data);
-      if (data.length > 0) setSelectedAlert(data[0]);
-      else setSelectedAlert(null);
+      setSelectedAlert((selected) => data.find((alert) => alert.id === selected?.id) ?? data[0] ?? null);
+    }).catch((error) => {
+      if (active) setLoadError(error instanceof Error ? error.message : "Could not load alert records.");
+    }).finally(() => {
+      if (active) setLoading(false);
     });
+    return () => {
+      active = false;
+    };
   }, [isDemoMode]);
 
   const handleAcknowledge = async (id: string) => {
-    await alertService.acknowledgeAlert(id);
-    setAlerts((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, status: "ACKNOWLEDGED" as const } : a))
-    );
+    setActing(true);
+    setActionError("");
+    try {
+      await alertService.acknowledgeAlert(id, isDemoMode);
+      setAlerts((prev) => prev.map((alert) => alert.id === id ? { ...alert, status: "ACKNOWLEDGED" as const } : alert));
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Could not acknowledge the alert record.");
+    } finally {
+      setActing(false);
+    }
   };
 
   const handleDismiss = async (id: string) => {
-    await alertService.dismissAlert(id);
-    setAlerts((prev) => prev.filter((a) => a.id !== id));
-    if (selectedAlert?.id === id) {
-      setSelectedAlert(alerts.find((a) => a.id !== id) || null);
+    setActing(true);
+    setActionError("");
+    try {
+      await alertService.dismissAlert(id, isDemoMode);
+      const remaining = alerts.filter((alert) => alert.id !== id);
+      setAlerts(remaining);
+      if (selectedAlert?.id === id) setSelectedAlert(remaining[0] ?? null);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Could not dismiss the alert record.");
+    } finally {
+      setActing(false);
+    }
+  };
+
+  const handleAcknowledgeAll = async () => {
+    setActing(true);
+    setActionError("");
+    try {
+      await Promise.all(alerts.map((alert) => alertService.acknowledgeAlert(alert.id, isDemoMode)));
+      setAlerts((current) => current.map((alert) => ({ ...alert, status: "ACKNOWLEDGED" as const })));
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : "Some alert records could not be acknowledged.");
+      try {
+        const current = await alertService.getActiveAlerts(isDemoMode);
+        setAlerts(current);
+        setSelectedAlert((selected) => current.find((alert) => alert.id === selected?.id) ?? current[0] ?? null);
+      } catch (reloadError) {
+        setActionError(reloadError instanceof Error ? reloadError.message : "Could not reload alert records after the failed action.");
+      }
+    } finally {
+      setActing(false);
     }
   };
 
@@ -45,7 +92,7 @@ export default function AlertCenterPage() {
   );
 
   return (
-    <AppShell pageTitle="Alert Center // Tactical Warning & Multi-Agency Dispatch">
+    <AppShell pageTitle="Alert Center // Demo & Workspace Alert Records">
       <div className="flex-1 flex flex-col p-4 md:p-6 gap-6 max-w-7xl mx-auto w-full select-none">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-white/10">
@@ -53,17 +100,19 @@ export default function AlertCenterPage() {
             <div className="flex items-center gap-2 mb-1">
               <BellRing className="w-5 h-5 text-amber-400" />
               <h1 className="font-mono text-xl font-bold uppercase tracking-wider text-white">
-                Strategic Alert & Early Warning Center
+                Alert Records
               </h1>
             </div>
             <p className="text-xs text-isie-text-secondary">
-              Automated threshold alerts, carrying capacity breaches, road cutoffs, and multi-agency notifications.
+              {isDemoMode
+                ? "Synthetic exercise alerts for interface demonstration only."
+                : "User-entered workspace records. No external warning feed or dispatch service is connected."}
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             <TacticalBadge variant="critical" size="sm" pulse>
-              {alerts.filter((a) => a.severity === "CRITICAL").length} CRITICAL ALARMS
+              {alerts.filter((a) => a.severity === "CRITICAL").length} {isDemoMode ? "SAMPLE RECORDS" : "REPORTED CRITICAL"}
             </TacticalBadge>
           </div>
         </div>
@@ -91,28 +140,31 @@ export default function AlertCenterPage() {
               variant="secondary"
               size="sm"
               icon={<CheckCircle2 className="w-3.5 h-3.5" />}
-              onClick={() => {
-                alerts.forEach((a) => alertService.acknowledgeAlert(a.id));
-                setAlerts((prev) => prev.map((a) => ({ ...a, status: "ACKNOWLEDGED" as const })));
-              }}
+              onClick={handleAcknowledgeAll}
+              disabled={acting || alerts.length === 0}
             >
               ACKNOWLEDGE ALL
             </TacticalButton>
           </div>
         </div>
 
+        {loadError && <p role="alert" className="rounded border border-red-500/30 bg-red-950/20 p-3 font-mono text-xs text-red-300">{loadError}</p>}
+        {actionError && <p role="alert" className="rounded border border-red-500/30 bg-red-950/20 p-3 font-mono text-xs text-red-300">{actionError}</p>}
+
         {/* Main Grid: Alert List & Detail Action Console */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-w-0">
           {/* Alert Queue */}
           <div className="lg:col-span-6 min-w-0 space-y-3 max-h-[640px] overflow-y-auto pr-1 scrollbar-thin">
-            {filteredAlerts.length === 0 ? (
+            {loading ? (
+              <p className="p-4 font-mono text-xs text-isie-text-dim">Loading alert records…</p>
+            ) : filteredAlerts.length === 0 ? (
               <EmptyState
                 icon="alert"
                 title="No Active Alerts"
                 description={
                   isDemoMode
                     ? "No alerts match the selected severity filter."
-                    : "No operational alerts have been dispatched in your sector."
+                    : "No alert records are available in this workspace."
                 }
                 statusText="CLEAR AIRWAVES"
               />
@@ -201,20 +253,23 @@ export default function AlertCenterPage() {
 
                 <div className="p-4 bg-white/[0.02] border border-white/10 rounded-xs space-y-2">
                   <div className="text-amber-300 font-bold uppercase tracking-wider">
-                    Recommended Response Protocol
+                    {isDemoMode ? "Demo Response Text" : "User-Entered Response Text"}
                   </div>
                   <p className="text-isie-text-primary leading-relaxed">
                     {selectedAlert.recommendedAction}
+                  </p>
+                  <p className="border-t border-white/10 pt-2 text-[10px] text-amber-200/80">
+                    Prototype content only. This is not a verified recommendation, official alert, or dispatch instruction.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-isie-text-dim">
                   <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xs">
-                    <div>SOURCE VERIFICATION</div>
+                    <div>REPORTED SOURCE LABEL · UNVERIFIED</div>
                     <div className="text-white font-bold mt-1">{selectedAlert.sourceAgency}</div>
                   </div>
                   <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xs">
-                    <div>CONFIDENCE SCORE</div>
+                    <div>REPORTED CONFIDENCE · UNVERIFIED</div>
                     <div className="text-emerald-400 font-bold mt-1">
                       {(selectedAlert.confidenceScore * 100).toFixed(0)}%
                     </div>
@@ -247,6 +302,7 @@ export default function AlertCenterPage() {
                       variant="primary"
                       size="sm"
                       onClick={() => handleAcknowledge(selectedAlert.id)}
+                      disabled={acting}
                     >
                       ACKNOWLEDGE
                     </TacticalButton>
@@ -254,13 +310,14 @@ export default function AlertCenterPage() {
                       variant="ghost"
                       size="sm"
                       onClick={() => handleDismiss(selectedAlert.id)}
+                      disabled={acting}
                     >
                       DISMISS
                     </TacticalButton>
                   </div>
                   <Link href="/resources">
                     <TacticalButton variant="secondary" size="sm">
-                      DISPATCH ASSETS
+                      VIEW RESOURCE RECORDS
                     </TacticalButton>
                   </Link>
                 </>

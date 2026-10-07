@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ShieldCheck, ArrowRight, User, Mail, Lock, Building, Globe, CheckCircle } from "lucide-react";
+import { ShieldCheck, ArrowRight, User, Mail, Lock, Building, CheckCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { TacticalBadge } from "@/components/ui/TacticalBadge";
 import { TacticalButton } from "@/components/ui/TacticalButton";
@@ -15,22 +15,10 @@ export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
-  const [role, setRole] = useState("Command / Decision Maker");
   const [organization, setOrganization] = useState("");
-  const [country, setCountry] = useState("India");
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [successMessage, setSuccessMessage] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const roles = [
-    "Command / Decision Maker",
-    "Analyst",
-    "Disaster Management",
-    "Defence / Security",
-    "Government / Administration",
-    "Researcher",
-    "Observer",
-  ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +36,6 @@ export default function SignUpPage() {
       name: fullName,
       email,
       password,
-      role,
       organization,
     });
 
@@ -73,11 +60,11 @@ export default function SignUpPage() {
               ISIE // PROTOTYPE ACCOUNT REGISTRATION
             </h1>
             <p className="text-xs font-mono text-isie-text-secondary mt-0.5">
-              ENROLL OFFICER PROFILE INTO TACTICAL ENVIRONMENT
+              Create an account for this prototype
             </p>
           </div>
           <TacticalBadge variant="cyan" size="sm">
-            FRONTEND SIMULATION
+            PROTOTYPE
           </TacticalBadge>
         </div>
 
@@ -87,7 +74,7 @@ export default function SignUpPage() {
             <div>
               <div className="font-bold">Prototype account created successfully.</div>
               <div className="text-[11px] text-emerald-400/80">
-                Granting tactical clearance and redirecting to Command Dashboard...
+                Default role: Viewer. Elevated permissions require administrator assignment.
               </div>
             </div>
           </div>
@@ -103,7 +90,7 @@ export default function SignUpPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-isie-text-secondary uppercase tracking-wider">
-                Full Name & Rank
+                Full Name
               </label>
               <input
                 type="text"
@@ -117,7 +104,7 @@ export default function SignUpPage() {
 
             <div className="space-y-1.5">
               <label className="text-isie-text-secondary uppercase tracking-wider">
-                Official Email
+                Email
               </label>
               <input
                 type="email"
@@ -133,7 +120,7 @@ export default function SignUpPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-isie-text-secondary uppercase tracking-wider">
-                Clearance Passcode
+                Password
               </label>
               <input
                 type="password"
@@ -147,7 +134,7 @@ export default function SignUpPage() {
 
             <div className="space-y-1.5">
               <label className="text-isie-text-secondary uppercase tracking-wider">
-                Confirm Passcode
+                Confirm Password
               </label>
               <input
                 type="password"
@@ -163,46 +150,16 @@ export default function SignUpPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="text-isie-text-secondary uppercase tracking-wider">
-                Operational Role
-              </label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                className="w-full bg-isie-panel-light border border-white/10 p-2.5 text-white outline-none rounded-xs"
-              >
-                {roles.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-isie-text-secondary uppercase tracking-wider">
-                Organization / Ministry
+                Organization (optional profile field)
               </label>
               <input
                 type="text"
                 value={organization}
                 onChange={(e) => setOrganization(e.target.value)}
                 placeholder="e.g. National Disaster Management Authority"
-                required
                 className="w-full bg-isie-panel-light border border-white/10 p-2.5 text-white outline-none rounded-xs"
               />
             </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-isie-text-secondary uppercase tracking-wider">
-              Country / Sovereign Domain
-            </label>
-            <input
-              type="text"
-              value={country}
-              onChange={(e) => setCountry(e.target.value)}
-              className="w-full bg-isie-panel-light border border-white/10 p-2.5 text-white outline-none rounded-xs"
-            />
           </div>
 
           <div className="flex items-center gap-2 pt-2">
@@ -214,7 +171,7 @@ export default function SignUpPage() {
               className="w-4 h-4 accent-isie-primary cursor-pointer"
             />
             <label htmlFor="terms" className="text-[11px] text-isie-text-secondary cursor-pointer">
-              I agree to the National Crisis Data Exchange Protocols & Operating Guidelines.
+              I understand this is a prototype. Records are not independently verified and do not provide emergency instructions.
             </label>
           </div>
 

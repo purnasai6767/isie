@@ -24,6 +24,14 @@ configured, and Esri satellite tiles as a no-token imagery fallback. Satellite
 tiles are not a live sensor feed and may not represent current ground
 conditions.
 
+The `/global` and `/sources` views retrieve NASA's public EONET v3 open-event
+catalog through `/api/nasa-eonet`, cached for up to 10 minutes. Event source
+links and retrieval time are shown in the UI. Only events with valid point
+geometry appear as map markers; other catalog entries remain in the list.
+EONET is a limited natural-event catalog, not comprehensive incident coverage,
+an emergency alert service, or proof of current ground conditions. Upstream
+errors appear as unavailable rather than being replaced with synthetic events.
+
 The `/global` map supports worldwide map navigation and place search; this does
 not imply worldwide incident coverage. The `/geospatial` scenario visualization
 is explicitly a tabletop simulation. Simulated hazard columns, H3 cells,

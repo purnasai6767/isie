@@ -74,8 +74,8 @@ export default function SignInPage() {
       setSuccessInfo({
         show: true,
         operatorName: isDemo
-          ? "Operations Director (Trident Actual)"
-          : (email.split("@")[0].toUpperCase() || "Authorized Operator"),
+          ? "Prototype Demo Operator"
+          : (email.split("@")[0].toUpperCase() || "Signed-in Account"),
         isDemo,
       });
       setTimeout(() => {
@@ -95,11 +95,11 @@ export default function SignInPage() {
       {/* Top Header Badge */}
       <div className="relative z-10 mb-6 flex items-center gap-2">
         <TacticalBadge variant="cyan" size="sm">
-          SECURITY DOMAIN: RESTRICTED
+          PROTOTYPE // AUTHENTICATION
         </TacticalBadge>
         <span className="text-white/20">|</span>
         <TacticalBadge variant="orange" size="sm" pulse>
-          DEMO ACCESS READY
+          DEMO ACCOUNT AVAILABLE
         </TacticalBadge>
       </div>
 
@@ -185,7 +185,7 @@ export default function SignInPage() {
           <div className="space-y-1.5 font-mono text-xs">
             <label className="text-isie-text-secondary uppercase tracking-wider flex items-center gap-1.5">
               <Mail className="w-3.5 h-3.5 text-isie-cyan" />
-              <span>Officer Email / Callsign</span>
+              <span>Email</span>
             </label>
             <input
               type="email"
@@ -200,7 +200,7 @@ export default function SignInPage() {
           <div className="space-y-1.5 font-mono text-xs">
             <label className="text-isie-text-secondary uppercase tracking-wider flex items-center gap-1.5">
               <Lock className="w-3.5 h-3.5 text-isie-primary" />
-              <span>Clearance Passcode</span>
+              <span>Password</span>
             </label>
             <input
               type="password"
@@ -255,7 +255,7 @@ export default function SignInPage() {
         <div className="mt-4 p-2.5 bg-white/[0.02] border border-white/5 rounded-xs flex items-start gap-2 text-[11px] text-isie-text-dim leading-relaxed">
           <Info className="w-3.5 h-3.5 text-isie-text-muted shrink-0 mt-0.5" />
           <span>
-            Demo Account: <code className="text-white font-mono">demo@isie.ai</code> / <code className="text-white font-mono">ISIE-DEMO-2026</code>. Role: <span className="text-amber-400">Command / Decision Maker</span>.
+            Demo Account: <code className="text-white font-mono">demo@isie.ai</code> / <code className="text-white font-mono">ISIE-DEMO-2026</code>. Demo records are synthetic and all permissions are illustrative.
           </span>
         </div>
 
@@ -278,7 +278,7 @@ export default function SignInPage() {
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-mono font-bold tracking-widest text-emerald-400 uppercase">
-                  CLEARANCE VERIFIED // ACCESS GRANTED
+                  {successInfo.isDemo ? "DEMO SIGN-IN SUCCESSFUL" : "AUTHENTICATION SUCCESSFUL"}
                 </span>
               </div>
               <p className="text-xs font-mono text-white font-medium">
@@ -290,7 +290,7 @@ export default function SignInPage() {
                 </span>
                 <span>•</span>
                 <span className={successInfo.isDemo ? "text-amber-400 font-semibold" : "text-emerald-400 font-semibold"}>
-                  {successInfo.isDemo ? "DEMO MODE" : "OPERATIONAL"}
+                  {successInfo.isDemo ? "DEMO DATA MODE" : "WORKSPACE ACCOUNT"}
                 </span>
               </div>
               {/* Subtle loading progress indicator line */}

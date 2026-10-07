@@ -31,13 +31,12 @@ export class AlertService implements IAlertService {
       if (snapshot.empty) {
         return [];
       }
-      return snapshot.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as Omit<Alert, "id">),
-      }));
+      return snapshot.docs
+        .map((d) => ({ id: d.id, ...(d.data() as Omit<Alert, "id">) }))
+        .filter((alert) => alert.status !== "DISMISSED");
     } catch (err) {
       handleFirestoreError(err, OperationType.LIST, "alerts");
-      return [];
+      throw err;
     }
   }
 
@@ -48,7 +47,7 @@ export class AlertService implements IAlertService {
       );
       return true;
     }
-    if (!auth.currentUser) return false;
+    if (!auth.currentUser) throw new Error("Sign in before acknowledging a workspace alert.");
 
     try {
       const alertRef = doc(db, "alerts", alertId);
@@ -59,7 +58,7 @@ export class AlertService implements IAlertService {
       return true;
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `alerts/${alertId}`);
-      return false;
+      throw err;
     }
   }
 
@@ -68,7 +67,7 @@ export class AlertService implements IAlertService {
       this.demoAlerts = this.demoAlerts.filter((a) => a.id !== alertId);
       return true;
     }
-    if (!auth.currentUser) return false;
+    if (!auth.currentUser) throw new Error("Sign in before dismissing a workspace alert.");
 
     try {
       const alertRef = doc(db, "alerts", alertId);
@@ -78,7 +77,7 @@ export class AlertService implements IAlertService {
       return true;
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `alerts/${alertId}`);
-      return false;
+      throw err;
     }
   }
 
@@ -89,7 +88,7 @@ export class AlertService implements IAlertService {
       );
       return true;
     }
-    if (!auth.currentUser) return false;
+    if (!auth.currentUser) throw new Error("Sign in before muting a workspace alert.");
 
     try {
       const alertRef = doc(db, "alerts", alertId);
@@ -99,7 +98,7 @@ export class AlertService implements IAlertService {
       return true;
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `alerts/${alertId}`);
-      return false;
+      throw err;
     }
   }
 }
