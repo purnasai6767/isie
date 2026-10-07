@@ -78,7 +78,7 @@ export default function GlobalSituationPage() {
               </h1>
             </div>
             <p className="text-xs text-isie-text-secondary">
-              Published global imagery, NASA EONET and USGS catalog entries, on-demand model weather, and separate workspace reports. These do not provide comprehensive hazard coverage or emergency alerts.
+              Published global imagery, NASA EONET and USGS catalog entries, and separate workspace reports. Public weather-model forecasts are available on the Sources page; none of these provide comprehensive hazard coverage or emergency alerts.
             </p>
           </div>
 
@@ -104,6 +104,13 @@ export default function GlobalSituationPage() {
               className="px-2.5 py-1 bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white rounded-xs font-mono text-[11px] border border-white/10 flex items-center gap-1 transition-colors"
             >
               <span>2D MAP</span>
+              <ArrowUpRight className="w-3 h-3" />
+            </Link>
+            <Link
+              href="/sources"
+              className="px-2.5 py-1 bg-sky-950/40 hover:bg-sky-900/50 text-sky-200 rounded-xs font-mono text-[11px] border border-sky-400/20 flex items-center gap-1 transition-colors"
+            >
+              <span>PUBLIC FORECASTS</span>
               <ArrowUpRight className="w-3 h-3" />
             </Link>
           </div>

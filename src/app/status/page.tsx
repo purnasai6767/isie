@@ -40,7 +40,7 @@ export default function SystemStatusPage() {
     "Central Water Commission hydrology and gauges",
     "ISRO / NRSC disaster imagery",
     "Copernicus Sentinel event-analysis layers",
-    "Population, shelter, healthcare, and road-status data",
+    "Population, shelter, healthcare, road closures, and emergency routing",
     "Official alert distribution or emergency dispatch",
   ];
 

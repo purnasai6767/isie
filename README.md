@@ -46,10 +46,12 @@ radar observations, or verified ground conditions. Coverage and model resolution
 vary by location. The free API is limited to non-commercial use and requires
 attribution; see [Open-Meteo's terms and attribution](https://open-meteo.com/en/terms).
 
-The `/global` map supports worldwide map navigation and place search; this does
-not imply worldwide incident coverage. The `/geospatial` scenario visualization
-is explicitly a tabletop simulation. Simulated hazard columns, H3 cells,
-routes, telemetry, and timeline frames are not operational data.
+The `/global` map supports worldwide map navigation and place search through
+Mapbox when configured, with public Open-Meteo geocoding as the no-token
+fallback. Place search coverage is not incident coverage. The `/geospatial`
+scenario visualization is explicitly a tabletop simulation. Simulated hazard
+columns, H3 cells, routes, telemetry, and timeline frames are not operational
+data.
 
 ## Firestore data
 

@@ -27,6 +27,36 @@ type RegionTarget = {
   pitch: number;
 };
 
+type PublicGeocodedPlace = {
+  name: string;
+  admin1: string | null;
+  country: string;
+  latitude: number;
+  longitude: number;
+};
+
+function isPublicGeocodedPlace(value: unknown): value is PublicGeocodedPlace {
+  if (typeof value !== "object" || value === null) return false;
+  return (
+    "name" in value &&
+    typeof value.name === "string" &&
+    "admin1" in value &&
+    (typeof value.admin1 === "string" || value.admin1 === null) &&
+    "country" in value &&
+    typeof value.country === "string" &&
+    "latitude" in value &&
+    typeof value.latitude === "number" &&
+    Number.isFinite(value.latitude) &&
+    value.latitude >= -90 &&
+    value.latitude <= 90 &&
+    "longitude" in value &&
+    typeof value.longitude === "number" &&
+    Number.isFinite(value.longitude) &&
+    value.longitude >= -180 &&
+    value.longitude <= 180
+  );
+}
+
 const REGION_TARGETS: Record<string, RegionTarget> = {
   ALL: { longitude: 25, latitude: 18, zoom: 1.35, pitch: 0 },
   HIM: { longitude: 82, latitude: 30, zoom: 5.3, pitch: 35 },
@@ -240,15 +270,33 @@ export default function SatelliteGlobeView({
         [longitude, latitude] = feature?.geometry?.coordinates ?? [];
         placeName = feature?.properties?.full_address ?? feature?.properties?.name ?? query;
       } else {
-        const params = new URLSearchParams({ q: query, format: "jsonv2", limit: "1" });
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
-          headers: { Accept: "application/json" },
-        });
-        if (!response.ok) throw new Error(`OpenStreetMap search returned HTTP ${response.status}.`);
-        const results: { lon?: string; lat?: string; display_name?: string }[] = await response.json();
-        longitude = Number(results[0]?.lon);
-        latitude = Number(results[0]?.lat);
-        placeName = results[0]?.display_name ?? query;
+        const response = await fetch(`/api/public-geocoding?q=${encodeURIComponent(query)}`);
+        const result: unknown = await response.json();
+        if (!response.ok) {
+          const message =
+            typeof result === "object" &&
+            result !== null &&
+            "error" in result &&
+            typeof result.error === "string"
+              ? result.error
+              : `Public place search failed (HTTP ${response.status}).`;
+          throw new Error(message);
+        }
+        if (
+          typeof result !== "object" ||
+          result === null ||
+          !("places" in result) ||
+          !Array.isArray(result.places)
+        ) {
+          throw new Error("Public place search returned an unexpected response format.");
+        }
+        const first = result.places[0];
+        if (!isPublicGeocodedPlace(first)) {
+          throw new Error(`No public place match was found for "${query}".`);
+        }
+        longitude = first.longitude;
+        latitude = first.latitude;
+        placeName = [first.name, first.admin1, first.country].filter(Boolean).join(", ");
       }
 
       if (
