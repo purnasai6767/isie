@@ -26,6 +26,9 @@ CARTO/OpenStreetMap basemap; the active provider is labeled in the map. This
 fallback is a street map, not satellite imagery. Satellite tiles are not a
 live sensor feed and may not represent current ground conditions. If all tile
 providers are unreachable, the map reports that rather than inventing imagery.
+Fallback raster tiles are fetched through a same-origin API route to avoid
+browser-side cross-origin tile restrictions; the route only allows known
+providers and valid tile coordinates.
 
 The `/global` and `/sources` views retrieve NASA's public EONET v3 open-event
 catalog through `/api/nasa-eonet`, cached for up to 10 minutes. Event source

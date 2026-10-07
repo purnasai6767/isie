@@ -71,18 +71,14 @@ const regionSurfaceStyle: StyleSpecification = {
   sources: {
     "esri-imagery": {
       type: "raster",
-      tiles: [
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
-      ],
+      tiles: ["/api/map-tiles/esri-imagery/{z}/{x}/{y}"],
       tileSize: 256,
       attribution: "Imagery © Esri, Maxar, Earthstar Geographics, and the GIS User Community",
       maxzoom: 19,
     },
     "esri-place-labels": {
       type: "raster",
-      tiles: [
-        "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
-      ],
+      tiles: ["/api/map-tiles/esri-labels/{z}/{x}/{y}"],
       tileSize: 256,
       attribution: "Boundaries and place names © Esri",
       maxzoom: 19,
@@ -104,9 +100,7 @@ const regionStreetStyle: StyleSpecification = {
   sources: {
     "esri-streets": {
       type: "raster",
-      tiles: [
-        "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
-      ],
+      tiles: ["/api/map-tiles/esri-streets/{z}/{x}/{y}"],
       tileSize: 256,
       attribution: "Map data and tiles © Esri",
       maxzoom: 19,
@@ -120,18 +114,14 @@ const cartoDarkStyle: StyleSpecification = {
   sources: {
     "openstreetmap-fallback": {
       type: "raster",
-      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      tiles: ["/api/map-tiles/openstreetmap/{z}/{x}/{y}"],
       tileSize: 256,
       attribution: "© OpenStreetMap contributors",
       maxzoom: 19,
     },
     "carto-dark": {
       type: "raster",
-      tiles: [
-        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
-      ],
+      tiles: ["/api/map-tiles/carto/{z}/{x}/{y}"],
       tileSize: 256,
       attribution: "© CARTO © OpenStreetMap contributors",
       maxzoom: 20,
