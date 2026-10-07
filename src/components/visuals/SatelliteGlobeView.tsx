@@ -135,10 +135,30 @@ const cartoDarkStyle: StyleSpecification = {
 
 const STYLES_WITH_TERRAIN = new Set<Surface>(["SATELLITE", "TACTICAL"]);
 
-function getMapStyle(surface: Surface, provider: ImageryProvider): string | StyleSpecification {
-  if (provider === "carto") return cartoDarkStyle;
+function getMapStyle(
+  surface: Surface,
+  provider: ImageryProvider,
+  tileOrigin: string
+): string | StyleSpecification {
+  const resolveTileUrls = (style: StyleSpecification): StyleSpecification => ({
+    ...style,
+    sources: Object.fromEntries(
+      Object.entries(style.sources).map(([id, source]) => {
+        if (source.type !== "raster" || !source.tiles) return [id, source];
+        return [
+          id,
+          {
+            ...source,
+            tiles: source.tiles.map((tileUrl) => new URL(tileUrl, tileOrigin).toString()),
+          },
+        ];
+      })
+    ),
+  });
+
+  if (provider === "carto") return resolveTileUrls(cartoDarkStyle);
   if (provider === "esri") {
-    return surface === "SATELLITE" ? regionSurfaceStyle : regionStreetStyle;
+    return resolveTileUrls(surface === "SATELLITE" ? regionSurfaceStyle : regionStreetStyle);
   }
   if (surface === "TACTICAL") return "mapbox://styles/mapbox/dark-v11";
   if (surface === "NIGHT") return "mapbox://styles/mapbox/navigation-night-v1";
@@ -186,7 +206,11 @@ export default function SatelliteGlobeView({
   const [placeQuery, setPlaceQuery] = useState("");
   const [placeError, setPlaceError] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const mapStyle = useMemo(() => getMapStyle(surface, provider), [surface, provider]);
+  const tileOrigin = typeof window === "undefined" ? "http://localhost" : window.location.origin;
+  const mapStyle = useMemo(
+    () => getMapStyle(surface, provider, tileOrigin),
+    [surface, provider, tileOrigin]
+  );
   const selectedIncident = incidents.find((incident) => incident.id === selectedIncidentId);
   const selectedEonetEvent = eonetEvents.find((event) => event.id === selectedEonetId);
   const selectedEarthquake = usgsEarthquakes.find((event) => event.id === selectedEarthquakeId);
@@ -376,7 +400,7 @@ export default function SatelliteGlobeView({
         ref={mapRef}
         mapboxAccessToken={token}
         mapStyle={mapStyle}
-        projection={provider === "mapbox" ? { name: "globe" } : { name: "mercator" }}
+        projection={{ name: "globe" }}
         initialViewState={{
           longitude: target.longitude,
           latitude: target.latitude,
