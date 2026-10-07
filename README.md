@@ -46,10 +46,9 @@ resource records are stored in Firestore. New accounts receive the `VIEWER`
 role; an administrator must grant additional roles through a trusted
 administrative process. The browser app cannot grant itself operator access.
 
-Firestore rules are in `firestore.rules`. Review the target Firebase project
-and database before deploying them with Firebase CLI. `firebase.json` targets
-the `(default)` database used by the client configuration. After signing in to
-the configured Firebase project, deploy with
+Firestore rules are in `firestore.rules`. `firebase.json` targets the named
+database configured by `firestoreDatabaseId` in `firebase-applet-config.json`.
+After signing in to the configured Firebase project, deploy with
 `npx firebase-tools deploy --only firestore:rules --project gen-lang-client-0164916426`.
 Rules deployment changes remote access control. Workspace values are not
 independently verified simply because they are stored in Firestore. Do not add
