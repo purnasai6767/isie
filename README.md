@@ -47,7 +47,10 @@ role; an administrator must grant additional roles through a trusted
 administrative process. The browser app cannot grant itself operator access.
 
 Firestore rules are in `firestore.rules`. Review the target Firebase project
-and database before deploying them with Firebase CLI; rules deployment requires
-an authorized Firebase account and changes remote access control. Workspace
-values are not independently verified simply because they are stored in
-Firestore. Do not add private API keys to source control.
+and database before deploying them with Firebase CLI. `firebase.json` targets
+the `(default)` database used by the client configuration. After signing in to
+the configured Firebase project, deploy with
+`npx firebase-tools deploy --only firestore:rules --project gen-lang-client-0164916426`.
+Rules deployment changes remote access control. Workspace values are not
+independently verified simply because they are stored in Firestore. Do not add
+private API keys to source control.
