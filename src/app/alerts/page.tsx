@@ -166,7 +166,7 @@ export default function AlertCenterPage() {
                     ? "No alerts match the selected severity filter."
                     : "No alert records are available in this workspace."
                 }
-                statusText="CLEAR AIRWAVES"
+                statusText="NO ALERT RECORDS"
               />
             ) : (
               filteredAlerts.map((alert) => {

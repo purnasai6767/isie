@@ -37,7 +37,7 @@ export default function LandingPage() {
       <main className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 pt-16 sm:pt-20 pb-28 flex flex-col items-center text-center">
         {/* Classification Header */}
         <div className="inline-flex flex-wrap items-center justify-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/10 rounded-sm mb-6 font-mono text-[11px] sm:text-xs text-isie-text-secondary max-w-full">
-          <span className="w-2 h-2 rounded-full bg-isie-primary animate-ping shrink-0" />
+          <span className="w-2 h-2 rounded-full bg-slate-500 shrink-0" />
           <span className="tracking-widest uppercase truncate">
             SPATIAL INTELLIGENCE PROTOTYPE · NOT FOR EMERGENCY OPERATIONS
           </span>

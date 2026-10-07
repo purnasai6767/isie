@@ -588,7 +588,6 @@ export const AdvancedMap: React.FC<AdvancedMapProps> = ({
             <div class="font-bold text-sky-400 mb-0.5">${st.name} [${st.code}]</div>
             <div class="text-[10px] text-slate-300">ADMIN CAPITAL: <strong class="text-white">${st.capital}</strong></div>
             <div class="text-[10px] text-slate-400 mt-1">SECTOR ZONE: ${st.region} Operational Command</div>
-            <div class="text-[10px] text-emerald-400 mt-0.5">STATUS: ALL DISASTER HUBS MONITORED</div>
           </div>
         `);
         fullStateNamesGroup.addLayer(marker);

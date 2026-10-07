@@ -238,7 +238,7 @@ export default function IncidentsPage() {
                 }
                 actionLabel={canCreate ? "+ CREATE INCIDENT" : undefined}
                 onAction={canCreate ? () => setIsCreateModalOpen(true) : undefined}
-                statusText={isDemoMode ? "SIMULATION STANDBY" : "OPERATIONAL CLEAR"}
+                statusText={isDemoMode ? "SIMULATION STANDBY" : "NO VERIFIED FEED"}
               />
             ) : (
               filteredIncidents.map((incident) => {

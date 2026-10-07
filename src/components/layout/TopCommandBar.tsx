@@ -54,6 +54,7 @@ export const TopCommandBar: React.FC<TopCommandBarProps> = ({
   const [mapsModalOpen, setMapsModalOpen] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [transcribeModalOpen, setTranscribeModalOpen] = useState(false);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   useEffect(() => {
@@ -215,10 +216,9 @@ export const TopCommandBar: React.FC<TopCommandBarProps> = ({
         <Link
           href="/alerts"
           className="relative p-2 text-isie-text-secondary hover:text-amber-400 hover:bg-white/5 rounded-sm transition-colors"
-          title="Active Alert Center"
+          title="Alert Center"
         >
           <AlertTriangle className="w-4 h-4 text-amber-500/80" />
-          <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
         </Link>
 
         {/* Notifications Dropdown Trigger */}
@@ -241,7 +241,7 @@ export const TopCommandBar: React.FC<TopCommandBarProps> = ({
               <div className="flex items-center justify-between pb-2 mb-2 border-b border-white/10">
                 <div className="flex items-center gap-2">
                   <span className="font-mono text-xs font-semibold uppercase tracking-wider text-white">
-                    Platform Dispatch
+                    Workspace Notifications
                   </span>
                   <TacticalBadge variant="cyan" size="sm">
                     {unreadCount} UNREAD
@@ -376,10 +376,17 @@ export const TopCommandBar: React.FC<TopCommandBarProps> = ({
 
               {/* Logout Button */}
               <div className="pt-3 mt-3 border-t border-white/10">
+                {logoutError && (
+                  <p role="alert" className="mb-2 text-[10px] font-mono text-red-300">
+                    Sign out failed: {logoutError}
+                  </p>
+                )}
                 <button
-                  onClick={() => {
-                    setProfileOpen(false);
-                    logout();
+                  onClick={async () => {
+                    setLogoutError(null);
+                    const result = await logout();
+                    if (result.success) setProfileOpen(false);
+                    else setLogoutError(result.error || "Please try again.");
                   }}
                   className="w-full flex items-center justify-between px-2.5 py-1.5 bg-red-950/40 hover:bg-red-900/40 text-red-300 border border-red-500/30 rounded-xs font-mono text-xs transition-colors"
                 >

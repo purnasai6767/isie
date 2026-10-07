@@ -4,16 +4,12 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ShieldAlert,
   ArrowRight,
-  KeyRound,
   Mail,
   Lock,
-  Sparkles,
-  Info,
   CheckCircle2,
 } from "lucide-react";
-import { useAuth, DEMO_CREDENTIALS } from "@/lib/auth/AuthContext";
+import { useAuth } from "@/lib/auth/AuthContext";
 import { TacticalBadge } from "@/components/ui/TacticalBadge";
 import { TacticalButton } from "@/components/ui/TacticalButton";
 
@@ -28,14 +24,7 @@ export default function SignInPage() {
   const [successInfo, setSuccessInfo] = useState<{
     show: boolean;
     operatorName: string;
-    isDemo: boolean;
   } | null>(null);
-
-  const handleFillDemo = () => {
-    setEmail(DEMO_CREDENTIALS.email);
-    setPassword(DEMO_CREDENTIALS.password);
-    setError(null);
-  };
 
   const handleGoogleSignIn = async () => {
     setIsGoogleLoading(true);
@@ -45,8 +34,7 @@ export default function SignInPage() {
     if (res.success) {
       setSuccessInfo({
         show: true,
-        operatorName: "Google Authenticated Operator",
-        isDemo: false,
+        operatorName: "Authenticated Google account",
       });
       setTimeout(() => {
         router.push("/dashboard");
@@ -70,19 +58,15 @@ export default function SignInPage() {
     setIsLoading(false);
 
     if (res.success) {
-      const isDemo = res.isDemo ?? false;
       setSuccessInfo({
         show: true,
-        operatorName: isDemo
-          ? "Prototype Demo Operator"
-          : (email.split("@")[0].toUpperCase() || "Signed-in Account"),
-        isDemo,
+        operatorName: email.trim(),
       });
       setTimeout(() => {
         router.push("/dashboard");
       }, 1200);
     } else {
-      setError(res.error || "Authentication failed. Use Fill Demo Credentials.");
+      setError(res.error || "Authentication failed. Check your credentials and try again.");
     }
   };
 
@@ -98,9 +82,6 @@ export default function SignInPage() {
           PROTOTYPE // AUTHENTICATION
         </TacticalBadge>
         <span className="text-white/20">|</span>
-        <TacticalBadge variant="orange" size="sm" pulse>
-          DEMO ACCOUNT AVAILABLE
-        </TacticalBadge>
       </div>
 
       {/* Authentication Card */}
@@ -191,7 +172,7 @@ export default function SignInPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. demo@isie.ai"
+              placeholder="name@example.com"
               className="w-full bg-isie-panel-light border border-white/10 focus:border-isie-primary/80 focus:bg-isie-panel-elevated p-2.5 text-white outline-none rounded-xs transition-colors"
               required
             />
@@ -227,38 +208,6 @@ export default function SignInPage() {
           </div>
         </form>
 
-        {/* Demo Quick Access Divider */}
-        <div className="relative my-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-white/10" />
-          </div>
-          <div className="relative flex justify-center text-[10px] font-mono uppercase tracking-widest">
-            <span className="bg-isie-panel px-2 text-isie-text-dim">
-              PROTOTYPE DEMONSTRATION
-            </span>
-          </div>
-        </div>
-
-        {/* Demo Credentials Helper */}
-        <div>
-          <button
-            type="button"
-            onClick={handleFillDemo}
-            className="w-full flex items-center justify-center gap-2 py-2.5 px-3 bg-white/5 hover:bg-white/10 border border-dashed border-white/20 hover:border-isie-cyan/50 text-isie-cyan font-mono text-xs tracking-wider rounded-xs transition-colors"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Fill Demo Credentials</span>
-          </button>
-        </div>
-
-        {/* Demo Note */}
-        <div className="mt-4 p-2.5 bg-white/[0.02] border border-white/5 rounded-xs flex items-start gap-2 text-[11px] text-isie-text-dim leading-relaxed">
-          <Info className="w-3.5 h-3.5 text-isie-text-muted shrink-0 mt-0.5" />
-          <span>
-            Demo Account: <code className="text-white font-mono">demo@isie.ai</code> / <code className="text-white font-mono">ISIE-DEMO-2026</code>. Demo records are synthetic and all permissions are illustrative.
-          </span>
-        </div>
-
         {/* Link to Sign Up */}
         <div className="mt-6 text-center font-mono text-xs text-isie-text-muted">
           Need a dedicated profile?{" "}
@@ -278,7 +227,7 @@ export default function SignInPage() {
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-mono font-bold tracking-widest text-emerald-400 uppercase">
-                  {successInfo.isDemo ? "DEMO SIGN-IN SUCCESSFUL" : "AUTHENTICATION SUCCESSFUL"}
+                  AUTHENTICATION SUCCESSFUL
                 </span>
               </div>
               <p className="text-xs font-mono text-white font-medium">
@@ -289,8 +238,8 @@ export default function SignInPage() {
                   IDENTITY: <strong className="text-white">{successInfo.operatorName}</strong>
                 </span>
                 <span>•</span>
-                <span className={successInfo.isDemo ? "text-amber-400 font-semibold" : "text-emerald-400 font-semibold"}>
-                  {successInfo.isDemo ? "DEMO DATA MODE" : "WORKSPACE ACCOUNT"}
+                <span className="text-emerald-400 font-semibold">
+                  FIREBASE ACCOUNT
                 </span>
               </div>
               {/* Subtle loading progress indicator line */}

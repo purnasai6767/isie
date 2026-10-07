@@ -169,12 +169,15 @@ export const Sidebar: React.FC = () => {
               <DemoModeBadge />
             </div>
             <div className="text-[10px] font-mono text-isie-text-dim truncate">
-              INGESTION: SYNTHETIC DEMO
+              LIVE INGESTION: NOT CONNECTED
             </div>
           </div>
         ) : (
           <div className="flex justify-center">
-            <span className="w-2 h-2 rounded-full bg-orange-400 animate-ping" />
+            <span
+              className="w-2 h-2 rounded-full bg-slate-500"
+              title="Live ingestion not connected"
+            />
           </div>
         )}
       </div>

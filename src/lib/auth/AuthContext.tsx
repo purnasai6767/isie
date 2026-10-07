@@ -7,7 +7,6 @@ import {
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
-  updateProfile,
   fbSignOut,
   onAuthStateChanged,
   syncUserProfile,
@@ -27,85 +26,42 @@ export interface AuthUser {
   provider?: string;
 }
 
-export const DEMO_CREDENTIALS = {
-  email: "demo@isie.ai",
-  password: "ISIE-DEMO-2026",
-};
-
-export const DEFAULT_DEMO_USER: AuthUser = {
-  id: "usr-demo-01",
-  name: "Prototype Demo Operator",
-  email: "demo@isie.ai",
-  role: "DEMO VIEWER",
-  organization: "Demo profile",
-  clearance: "No real clearance assigned",
-  callsign: "DEMO",
-  isDemo: true,
-};
-
 interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
   isDemoMode: boolean;
-  login: (email: string, pass: string) => Promise<{ success: boolean; error?: string; isDemo?: boolean }>;
+  login: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: () => Promise<{ success: boolean; error?: string; cancelled?: boolean }>;
-  loginDemo: () => Promise<void>;
   signup: (data: { name: string; email: string; password: string; role?: string; organization?: string }) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
+  logout: () => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const STORAGE_KEY = "isie_auth_session";
-const DEMO_OPT_IN_KEY = "isie_demo_opt_in";
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [isInitializing, setIsInitializing] = useState(true);
 
-  // Listen to Firebase Auth state
   useEffect(() => {
-    // Listen to Firebase Auth state for real users
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
-      if (fbUser) {
-        const synced = await syncUserProfile(fbUser);
-        const mappedUser: AuthUser = {
-          id: fbUser.uid,
-          name: fbUser.displayName || synced?.displayName || "Tactical Operator",
-          email: fbUser.email || "",
-          role: synced?.role || "VIEWER",
-          organization: synced?.organization || "Not configured",
-          clearance: synced?.clearance || "Not assigned",
-          callsign: synced?.callsign || "Not assigned",
-          isDemo: false,
-          avatarUrl: fbUser.photoURL || undefined,
-          provider: fbUser.providerData?.[0]?.providerId || "firebase",
-        };
-        setUser(mappedUser);
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(mappedUser));
-        } catch {}
-      } else {
-        // Demo data is available only after an explicit demo-mode opt-in.
-        try {
-          const stored = localStorage.getItem(STORAGE_KEY);
-          const demoOptedIn = localStorage.getItem(DEMO_OPT_IN_KEY) === "true";
-          if (stored && demoOptedIn) {
-            const parsed = JSON.parse(stored) as AuthUser;
-            const restoredDemo = parsed.isDemo ? DEFAULT_DEMO_USER : null;
-            setUser(restoredDemo);
-            if (restoredDemo) localStorage.setItem(STORAGE_KEY, JSON.stringify(restoredDemo));
-          } else {
-            localStorage.removeItem(STORAGE_KEY);
-            localStorage.removeItem(DEMO_OPT_IN_KEY);
-            setUser(null);
-          }
-        } catch (error) {
-          console.error("Could not restore the explicitly selected demo session.", error);
-          setUser(null);
-        }
+      if (!fbUser) {
+        setUser(null);
+        return;
       }
-      setIsInitializing(false);
+
+      const synced = await syncUserProfile(fbUser);
+      if (auth.currentUser?.uid !== fbUser.uid) return;
+      setUser({
+        id: fbUser.uid,
+        name: fbUser.displayName || synced?.displayName || "Authenticated user",
+        email: fbUser.email || "",
+        role: synced?.role || "VIEWER",
+        organization: synced?.organization || "Not configured",
+        clearance: synced?.clearance || "Not assigned",
+        callsign: synced?.callsign || "Not assigned",
+        isDemo: false,
+        avatarUrl: fbUser.photoURL || undefined,
+        provider: fbUser.providerData?.[0]?.providerId || "firebase",
+      });
     });
 
     return () => unsubscribe();
@@ -129,9 +85,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           provider: "google",
         };
         setUser(authedUser);
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(authedUser));
-        } catch {}
         return { success: true };
       }
       return { success: false, error: "Google authentication failed" };
@@ -166,20 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const login = async (email: string, pass: string): Promise<{ success: boolean; error?: string; isDemo?: boolean }> => {
-    // Mode A: Demo Credentials
-    if (email.toLowerCase().trim() === DEMO_CREDENTIALS.email.toLowerCase() && pass === DEMO_CREDENTIALS.password) {
-      setUser(DEFAULT_DEMO_USER);
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DEMO_USER));
-          localStorage.setItem(DEMO_OPT_IN_KEY, "true");
-        } catch {}
-      }
-      return { success: true, isDemo: true };
-    }
-
-    // Mode B: Real User Firebase Authentication
+  const login = async (email: string, pass: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const credential = await signInWithEmailAndPassword(auth, email.trim(), pass);
       const synced = await syncUserProfile(credential.user);
@@ -195,27 +135,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         provider: "password",
       };
       setUser(authedUser);
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(authedUser));
-          localStorage.removeItem(DEMO_OPT_IN_KEY);
-        } catch {}
-      }
-      return { success: true, isDemo: false };
+      return { success: true };
     } catch (err: any) {
       const msg = err?.message || "Authentication failed.";
       return { success: false, error: msg };
-    }
-  };
-
-  const loginDemo = async () => {
-    setUser(DEFAULT_DEMO_USER);
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DEMO_USER));
-        localStorage.setItem(DEMO_OPT_IN_KEY, "true");
-      } catch {}
-      window.location.href = "/dashboard";
     }
   };
 
@@ -229,11 +152,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const cred = await createUserWithEmailAndPassword(auth, data.email.trim(), data.password);
       if (cred.user) {
-        if (data.name) {
-          try {
-            await updateProfile(cred.user, { displayName: data.name });
-          } catch {}
-        }
         const synced = await syncUserProfile(cred.user, {
           displayName: data.name,
           role: "VIEWER",
@@ -254,12 +172,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           provider: "password",
         };
         setUser(authedUser);
-        if (typeof window !== "undefined") {
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(authedUser));
-            localStorage.removeItem(DEMO_OPT_IN_KEY);
-          } catch {}
-        }
         return { success: true };
       }
       return { success: false, error: "Account creation failed." };
@@ -269,15 +181,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
-    fbSignOut(auth).catch(() => {});
-    setUser(null);
-    if (typeof window !== "undefined") {
-      try {
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(DEMO_OPT_IN_KEY);
-      } catch {}
+  const logout = async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      await fbSignOut(auth);
+      setUser(null);
       window.location.href = "/signin";
+      return { success: true };
+    } catch (err: any) {
+      console.error("Sign out error:", err);
+      return { success: false, error: err?.message || "Could not sign out." };
     }
   };
 
@@ -286,10 +198,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         isAuthenticated: !!user,
-        isDemoMode: user?.isDemo ?? false,
+        isDemoMode: false,
         login,
         loginWithGoogle,
-        loginDemo,
         signup,
         logout,
       }}

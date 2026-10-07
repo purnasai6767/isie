@@ -62,6 +62,12 @@ resource records are stored in Firestore. New accounts receive the `VIEWER`
 role; an administrator must grant additional roles through a trusted
 administrative process. The browser app cannot grant itself operator access.
 
+Sign-in and account creation use Firebase Authentication only. There is no
+demo credential, local-storage identity, or client-side path that can mark an
+unauthenticated visitor as signed in. Public browsing does not create an
+account; clearly labeled tabletop simulations remain synthetic and must not
+be treated as real incident, shelter, route, or warning data.
+
 Firestore rules are in `firestore.rules`. `firebase.json` targets the named
 database configured by `firestoreDatabaseId` in `firebase-applet-config.json`.
 After signing in to the configured Firebase project, deploy with
