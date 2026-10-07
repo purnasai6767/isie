@@ -339,7 +339,7 @@ export default function SatelliteGlobeView({
         ref={mapRef}
         mapboxAccessToken={token}
         mapStyle={mapStyle}
-        projection={{ name: "globe" }}
+        projection={token ? { name: "globe" } : { name: "mercator" }}
         initialViewState={{
           longitude: target.longitude,
           latitude: target.latitude,
