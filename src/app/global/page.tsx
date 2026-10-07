@@ -31,45 +31,32 @@ export default function GlobalSituationPage() {
     };
   }, [isDemoMode]);
 
-  const regions = [
+  const mapFocusPresets = [
     {
       id: "ALL",
       name: "Global Composite View",
-      count: incidents.length,
     },
     {
       id: "HIM",
       name: "Himalayan Glacial Belt",
-      count: incidents.filter((i) => i.region?.includes("Himalayan") || i.eventCode.includes("HIM")).length,
     },
     {
       id: "NOR",
       name: "Northern River Basins",
-      count: incidents.filter((i) => i.region?.includes("Northern") || i.eventCode.includes("NOR")).length,
     },
     {
       id: "CST",
       name: "Coastal Surge Corridors",
-      count: incidents.filter((i) => i.region?.includes("Coastal") || i.eventCode.includes("CST")).length,
     },
     {
       id: "PEN",
       name: "Peninsular Catchment Areas",
-      count: incidents.filter((i) => i.region?.includes("Peninsular") || i.eventCode.includes("PEN")).length,
     },
   ];
 
   const criticalCount = incidents.filter((i) => i.severity === "CRITICAL").length;
-  const warningCount = incidents.filter((i) => i.severity === "HIGH" || i.severity === "MEDIUM").length;
-
-  const filteredIncidents = incidents.filter((inc) => {
-    if (selectedRegion === "ALL") return true;
-    if (selectedRegion === "HIM") return inc.region?.includes("Himalayan") || inc.eventCode.includes("HIM");
-    if (selectedRegion === "NOR") return inc.region?.includes("Northern") || inc.eventCode.includes("NOR");
-    if (selectedRegion === "CST") return inc.region?.includes("Coastal") || inc.eventCode.includes("CST");
-    if (selectedRegion === "PEN") return inc.region?.includes("Peninsular") || inc.eventCode.includes("PEN");
-    return true;
-  });
+  const warningCount = incidents.filter((i) => ["HIGH", "MEDIUM", "MODERATE"].includes(i.severity)).length;
+  const otherSeverityCount = incidents.length - criticalCount - warningCount;
 
   return (
     <AppShell pageTitle="Global Situation // Macro Environmental Telemetry">
@@ -84,13 +71,15 @@ export default function GlobalSituationPage() {
               </h1>
             </div>
             <p className="text-xs text-isie-text-secondary">
-              Strategic transboundary monitoring, macro meteorological phenomena, and multi-region correlation.
+              Worldwide basemap and place search with workspace incident records. No global hazard or weather feed is connected.
             </p>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
             <TacticalBadge variant="cyan" size="sm" pulse>
-              DEMO EXERCISE // {incidents.length} SAMPLE SIGNALS
+              {isDemoMode
+                ? `DEMO EXERCISE // ${incidents.length} SAMPLE SIGNALS`
+                : `WORKSPACE RECORDS // ${incidents.length} · NO LIVE FEED`}
             </TacticalBadge>
             <Link
               href="/geospatial"
@@ -102,9 +91,12 @@ export default function GlobalSituationPage() {
           </div>
         </div>
 
-        {/* Region Selector Pills */}
+        {/* Map focus presets; these do not indicate data coverage. */}
         <div className="flex flex-wrap items-center gap-2">
-          {regions.map((reg) => (
+          <span className="mr-1 font-mono text-[10px] uppercase tracking-wider text-isie-text-dim">
+            Map focus · use the map search for any place
+          </span>
+          {mapFocusPresets.map((reg) => (
             <button
               key={reg.id}
               onClick={() => setSelectedRegion(reg.id)}
@@ -115,7 +107,6 @@ export default function GlobalSituationPage() {
               }`}
             >
               <span>{reg.name}</span>
-              <span className="text-[10px] opacity-70 font-bold">({reg.count})</span>
             </button>
           ))}
         </div>
@@ -124,7 +115,7 @@ export default function GlobalSituationPage() {
         <div className="h-[480px] sm:h-[560px] w-full rounded-sm border border-white/10 relative overflow-hidden bg-isie-bg-deep shadow-2xl min-w-0">
           {mounted ? (
             <SatelliteGlobeView
-              incidents={filteredIncidents}
+              incidents={incidents}
               selectedRegion={selectedRegion}
               selectedIncidentId={selectedIncidentId}
               onSelectIncident={(inc) => setSelectedIncidentId(inc?.id || null)}
@@ -141,7 +132,7 @@ export default function GlobalSituationPage() {
           <div className="p-4 bg-isie-panel border border-white/10 rounded-sm min-w-0 flex flex-col justify-between space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-white/10">
               <span className="font-mono text-xs uppercase tracking-wider text-white font-semibold">
-                Sample Exercise Signals
+                {isDemoMode ? "Sample Exercise Signals" : "Workspace Incident Records"}
               </span>
               <TacticalBadge variant="orange" size="sm">
                 {incidents.length} SIGNALS
@@ -173,49 +164,38 @@ export default function GlobalSituationPage() {
           <div className="p-4 bg-isie-panel border border-white/10 rounded-sm flex flex-col justify-between space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-white/10">
               <span className="font-mono text-xs uppercase tracking-wider text-white font-semibold">
-                Illustrative Correlations
+                Cross-Region Correlation
               </span>
-              <TacticalBadge variant="warning" size="sm">
-                DEMO VALUES
+              <TacticalBadge variant="muted" size="sm">
+                NOT AVAILABLE
               </TacticalBadge>
             </div>
-            <div className="space-y-2 font-mono text-[11px] text-isie-text-secondary">
-              <div className="p-2 bg-white/[0.02] border border-white/5 rounded-xs flex justify-between">
-                <span>Himalayan → Ganga Basin</span>
-                <span className="text-amber-400 font-bold">HYDRO COUPLING (94%)</span>
-              </div>
-              <div className="p-2 bg-white/[0.02] border border-white/5 rounded-xs flex justify-between">
-                <span>Odisha Coast → Cyclone Swath</span>
-                <span className="text-red-400 font-bold">SURGE COUPLING (89%)</span>
-              </div>
-              <div className="p-2 bg-white/[0.02] border border-white/5 rounded-xs flex justify-between">
-                <span>Mettur Dam → Cauvery Delta</span>
-                <span className="text-sky-300 font-bold">CONTROLLED (45%)</span>
-              </div>
-            </div>
+            <p className="text-[11px] leading-relaxed text-isie-text-dim">
+              No provider-backed cross-region correlation service is connected. No correlation scores are shown.
+            </p>
           </div>
 
           <div className="p-4 bg-isie-panel border border-white/10 rounded-sm flex flex-col justify-between space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-white/10">
               <span className="font-mono text-xs uppercase tracking-wider text-white font-semibold">
-                Global Severity Distribution
+                Recorded Incident Severity
               </span>
               <TacticalBadge variant="muted" size="sm">
-                {incidents.length} TOTAL NODES
+                {incidents.length} WORKSPACE RECORDS
               </TacticalBadge>
             </div>
             <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xs space-y-3 font-mono text-xs">
               <div className="flex justify-between items-center text-red-400">
-                <span>CRITICAL HAZARD NODES</span>
+                <span>CRITICAL REPORTS · UNVERIFIED</span>
                 <span className="font-bold">{criticalCount}</span>
               </div>
               <div className="flex justify-between items-center text-amber-400">
-                <span>WARNING / BUFFER NODES</span>
+                <span>HIGH / MODERATE REPORTS</span>
                 <span className="font-bold">{warningCount}</span>
               </div>
               <div className="flex justify-between items-center text-emerald-400">
-                <span>NOMINAL / SECURE BASINS</span>
-                <span className="font-bold">ALL OTHERS</span>
+                <span>OTHER REPORTED SEVERITY</span>
+                <span className="font-bold">{otherSeverityCount}</span>
               </div>
             </div>
           </div>

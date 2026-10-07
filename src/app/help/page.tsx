@@ -95,7 +95,7 @@ export default function HelpPage() {
             ● Demo Environment & Prototype Notice
           </div>
           <p className="text-[11px] text-isie-text-secondary leading-relaxed">
-            All data currently rendered across incidents, carrying capacity scores, and alerts is synthetic demonstration data. Upstream government APIs (IMD, CWC, ISRO NDEM, Copernicus) are prepared with abstract service adapters for production deployment.
+            Demo mode uses synthetic exercise data. Authenticated workspace records are user-entered and are not independently verified. No IMD, CWC, ISRO, Copernicus, population, shelter, routing, or live hazard provider is connected.
           </p>
         </div>
       </div>

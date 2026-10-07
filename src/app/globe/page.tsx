@@ -10,7 +10,7 @@ import { incidentService } from "@/lib/services/incidentService";
 import { IntelligenceEvent } from "@/lib/types/isie";
 import Link from "next/link";
 
-import { SafeGlobal3DView as Global3DView } from "@/components/visuals/SafeGlobal3DView";
+import SatelliteGlobeView from "@/components/visuals/SatelliteGlobeView";
 
 export default function GlobePage() {
   const { isDemoMode } = useAuth();
@@ -55,11 +55,11 @@ export default function GlobePage() {
 
           <div className="flex items-center gap-3">
             <TacticalBadge variant={isDemoMode ? "cyan" : "orange"} size="sm">
-              {isDemoMode ? "DEMO SIMULATION" : "OPERATIONAL FIRESTORE"} // {incidents.length} NODES
+              {isDemoMode ? "DEMO EXERCISE" : "WORKSPACE RECORDS"} // {incidents.length} RECORDS
             </TacticalBadge>
             <div className="hidden sm:flex items-center gap-1.5 font-mono text-xs text-isie-text-muted">
               <Satellite className="w-3.5 h-3.5 text-amber-400" />
-              <span>ORBITAL SYNC: NOMINAL</span>
+              <span>BASEMAP: PROVIDER IMAGERY</span>
             </div>
           </div>
         </div>
@@ -67,8 +67,9 @@ export default function GlobePage() {
         {/* 3D Globe Container */}
         <div className="flex-1 min-h-0 relative">
           {mounted ? (
-            <Global3DView
+            <SatelliteGlobeView
               incidents={incidents}
+              selectedRegion="ALL"
               selectedIncidentId={selectedIncidentId}
               onSelectIncident={(inc) => setSelectedIncidentId(inc?.id || null)}
             />

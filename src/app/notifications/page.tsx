@@ -14,26 +14,42 @@ export default function NotificationsPage() {
   const { isDemoMode } = useAuth();
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [filter, setFilter] = useState("ALL");
+  const [actionError, setActionError] = useState("");
 
   useEffect(() => {
     notificationService.getNotifications(isDemoMode).then(setNotifications);
   }, [isDemoMode]);
 
   const handleMarkAllRead = async () => {
-    await Promise.all(notifications.map((n) => notificationService.markAsRead(n.id)));
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setActionError("");
+    const results = await Promise.all(
+      notifications.map((n) => notificationService.markAsRead(n.id, isDemoMode))
+    );
+    if (results.every(Boolean)) {
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    } else {
+      setActionError("Some notifications could not be updated. Check your account permissions and connection.");
+    }
   };
 
   const handleClear = async () => {
-    await notificationService.clearAll();
-    setNotifications([]);
+    setActionError("");
+    if (await notificationService.clearAll(isDemoMode)) {
+      setNotifications([]);
+    } else {
+      setActionError("Notifications could not be cleared. Check your account permissions and connection.");
+    }
   };
 
   const handleMarkSingle = async (id: string) => {
-    await notificationService.markAsRead(id);
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
-    );
+    setActionError("");
+    if (await notificationService.markAsRead(id, isDemoMode)) {
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      );
+    } else {
+      setActionError("Notification could not be updated. Check your account permissions and connection.");
+    }
   };
 
   const filtered = notifications.filter((n) => {
@@ -69,6 +85,7 @@ export default function NotificationsPage() {
         </div>
 
         {/* Filter Controls & Actions */}
+        {actionError && <p role="alert" className="text-xs text-red-300">{actionError}</p>}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5 font-mono text-xs">
             {["ALL", "CRITICAL", "INTEL", "SYSTEM"].map((f) => (

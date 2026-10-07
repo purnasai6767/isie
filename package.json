@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "NODE_OPTIONS='--max-old-space-size=1024' next dev -p 3000",
-    "build": "NODE_ENV=production next build && cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public 2>/dev/null || true",
+    "build": "NODE_ENV=production next build && node scripts/copy-standalone-assets.mjs",
     "start": "next start",
     "lint": "tsc --noEmit"
   },

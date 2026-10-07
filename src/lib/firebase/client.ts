@@ -115,7 +115,13 @@ googleProvider.setCustomParameters({ prompt: "select_account" });
 
 // Passive connection verification helper to prevent unneeded backend network timeouts on boot
 export async function verifyFirestoreConnection(): Promise<boolean> {
-  return true;
+  try {
+    await getDocFromServer(doc(firestore, "test", "connection-check"));
+    return true;
+  } catch (error) {
+    handleFirestoreError(error, OperationType.GET, "test/connection-check");
+    return false;
+  }
 }
 
 // User Profile persistence model
@@ -196,7 +202,7 @@ export async function syncUserProfile(
       email: user.email || "",
       displayName: user.displayName || extraData?.displayName || "Strategic Operator",
       photoURL: user.photoURL || undefined,
-      role: existing.exists() ? existing.data()?.role : (extraData?.role || "OPERATOR"),
+      role: existing.exists() ? existing.data()?.role : "VIEWER",
       organization: existing.exists() ? existing.data()?.organization : (extraData?.organization || "National Crisis Command"),
       clearance: existing.exists() ? existing.data()?.clearance : (extraData?.clearance || "Level 4 Strategic"),
       callsign: existing.exists() ? existing.data()?.callsign : (extraData?.callsign || "COMMAND-01"),

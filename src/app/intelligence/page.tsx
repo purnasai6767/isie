@@ -75,8 +75,8 @@ export default function IntelligenceEvidencePage() {
                 <div className="space-y-2 flex-1">
                   <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
                     <span className="text-white font-bold">{item.id}</span>
-                    <TacticalBadge variant="safe" size="sm">
-                      {item.verificationStatus.replace("_", " ")}
+                    <TacticalBadge variant="muted" size="sm">
+                      WORKSPACE RECORD · UNVERIFIED
                     </TacticalBadge>
                     <span className="text-isie-cyan font-semibold">
                       SOURCE: {item.sourceName}
@@ -102,7 +102,7 @@ export default function IntelligenceEvidencePage() {
 
                 <div className="shrink-0 flex flex-col gap-2 font-mono text-xs">
                   <div className="p-3 bg-white/[0.02] border border-white/5 rounded-xs text-center">
-                    <div className="text-[10px] text-isie-text-dim">CONFIDENCE</div>
+                    <div className="text-[10px] text-isie-text-dim">OPERATOR-ENTERED CONFIDENCE</div>
                     <div className="text-emerald-400 font-bold text-base mt-0.5">
                       {(item.confidenceScore * 100).toFixed(0)}%
                     </div>
@@ -114,7 +114,7 @@ export default function IntelligenceEvidencePage() {
                       rel="noreferrer"
                       className="px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 text-isie-text-primary rounded-xs flex items-center justify-center gap-1.5 transition-colors text-[11px]"
                     >
-                      <span>OFFICIAL FEED</span>
+                      <span>PROVIDER PORTAL · NOT CONNECTED</span>
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   )}
@@ -137,7 +137,7 @@ export default function IntelligenceEvidencePage() {
                       {source.name}
                     </span>
                     <TacticalBadge variant="safe" size="sm">
-                      AUTHENTICATED
+                      CATALOGED · DISCONNECTED
                     </TacticalBadge>
                   </div>
                   <div className="font-mono text-[10px] text-isie-cyan mb-2">
@@ -149,7 +149,7 @@ export default function IntelligenceEvidencePage() {
                 </div>
 
                 <div className="pt-3 border-t border-white/10 flex items-center justify-between font-mono text-[10px] text-isie-text-dim">
-                  <span className="text-emerald-400">TELEMETRY: SYNCHRONIZED</span>
+                  <span className="text-amber-400">PROVIDER: NOT CONNECTED</span>
                   <a
                     href={source.referenceUrl}
                     target="_blank"

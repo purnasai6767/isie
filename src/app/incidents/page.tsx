@@ -172,13 +172,13 @@ export default function IncidentsPage() {
               </h1>
             </div>
             <p className="text-xs text-isie-text-secondary">
-              Canonical situation intelligence records feeding 2D India Tactical Map, 3D Globe, Alerts, and Risk cascades.
+              Workspace-entered incident records. Alerts, risk assessments, and verification require connected source providers.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <TacticalBadge variant={isDemoMode ? "cyan" : "orange"} size="sm" pulse={incidents.length > 0}>
-              {isDemoMode ? "DEMO SIMULATION" : "LIVE FIRESTORE"} // {incidents.length} INCIDENTS
+              {isDemoMode ? "DEMO EXERCISE" : "WORKSPACE REPORTS"} // {incidents.length}
             </TacticalBadge>
 
             <TacticalButton
@@ -234,7 +234,7 @@ export default function IncidentsPage() {
                 description={
                   isDemoMode
                     ? "No synthetic incidents match the active search or severity filter."
-                    : "No operational incidents currently active in this sector. Click '+ CREATE INCIDENT' to initialize a situation record."
+                    : "No incident reports are available in this workspace. Records entered here are not independently verified."
                 }
                 actionLabel={canCreate ? "+ CREATE INCIDENT" : undefined}
                 onAction={canCreate ? () => setIsCreateModalOpen(true) : undefined}
@@ -502,7 +502,7 @@ export default function IncidentsPage() {
                     Fused Intelligence Sources ({selectedIncident.sourceAgencies?.length || selectedIncident.sourceCount})
                   </span>
                   <div className="flex flex-wrap gap-2">
-                    {(selectedIncident.sourceAgencies || ["Official Telemetry"]).map((agency) => (
+                    {(selectedIncident.sourceAgencies || ["Not provided"]).map((agency) => (
                       <span
                         key={agency}
                         className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/5 border border-white/10 rounded-xs font-mono text-xs text-isie-text-secondary"
@@ -555,7 +555,8 @@ export default function IncidentsPage() {
                 <p className="text-xs text-isie-text-dim max-w-sm">
                   {isDemoMode
                     ? "Select an active incident from the list to inspect operational details."
-                    : "When operational incidents are created, detailed telemetry will appear here."}
+                    : "When workspace reports are created, their entered details will appear here."
+                  }
                 </p>
               </div>
             )}

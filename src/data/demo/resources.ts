@@ -8,7 +8,7 @@ export interface ResponseResource {
   currentAllocated: number;
   status: "DEPLOYED" | "STANDBY" | "EN_ROUTE" | "SATURATED";
   contactCallsign: string;
-  readinessPercentage: number;
+  readinessPercentage?: number;
   lastUpdated: string;
 }
 

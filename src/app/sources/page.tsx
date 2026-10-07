@@ -26,7 +26,7 @@ export default function SourcesPage() {
 
           <div className="flex items-center gap-2">
             <TacticalBadge variant="cyan" size="sm">
-              6 AUTHORITATIVE PROVIDERS CONFIGURED
+              6 PROVIDERS CATALOGED · 0 CONNECTED
             </TacticalBadge>
           </div>
         </div>

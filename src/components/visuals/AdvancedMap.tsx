@@ -25,7 +25,6 @@ import {
   Info,
 } from "lucide-react";
 import { TacticalBadge } from "../ui/TacticalBadge";
-import { DEMO_INCIDENTS } from "@/data/demo/incidents";
 import { IntelligenceEvent } from "@/lib/types/isie";
 import {
   INDIAN_STATES,
@@ -76,7 +75,7 @@ export const AdvancedMap: React.FC<AdvancedMapProps> = ({
   activeLayers: propActiveLayers,
   layerOpacities: propLayerOpacities,
 }) => {
-  const activeIncidents = incidents !== undefined ? incidents : DEMO_INCIDENTS;
+  const activeIncidents = incidents ?? [];
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const layersGroupRef = useRef<Record<string, any>>({});
@@ -124,39 +123,6 @@ export const AdvancedMap: React.FC<AdvancedMapProps> = ({
     };
 
     if (propLayerOpacities || propActiveLayers) {
-      // 1. Hazard Red Zones (Module 01)
-      const redZoneOpacity = propLayerOpacities?.["layer-red-zones"] ?? 0.85;
-      const redZoneVisible = propActiveLayers ? propActiveLayers["layer-red-zones"] !== false : true;
-      updateGroupStyle(groups.hazardZones, redZoneOpacity, redZoneVisible, 0.25);
-
-      // 2. Critical Evacuation Corridors & Road Cutoffs
-      const evacOpacity = propLayerOpacities?.["layer-evacuation-corridors"] ?? 0.75;
-      const evacVisible = propActiveLayers ? propActiveLayers["layer-evacuation-corridors"] !== false : true;
-      updateGroupStyle(groups.evacuationCorridors, evacOpacity, evacVisible, 0);
-      updateGroupStyle(groups.roadCutoffs, evacOpacity, evacVisible, 0);
-
-      // 3. CWC River & Hydrology
-      const cwcOpacity = propLayerOpacities?.["layer-cwc-hydrology"] ?? 0.9;
-      const cwcVisible = propActiveLayers ? propActiveLayers["layer-cwc-hydrology"] !== false : true;
-      updateGroupStyle(groups.rivers, cwcOpacity, cwcVisible, 0);
-      updateGroupStyle(groups.riverLabels, cwcOpacity, cwcVisible, 0);
-      updateGroupStyle(groups.waterAndDams, cwcOpacity, cwcVisible, 0.2);
-
-      // 4. Carrying Capacity & Relocation Shelters
-      const shelterOpacity = propLayerOpacities?.["layer-carrying-capacity"] ?? 0.8;
-      const shelterVisible = propActiveLayers ? propActiveLayers["layer-carrying-capacity"] !== false : true;
-      updateGroupStyle(groups.shelters, shelterOpacity, shelterVisible, 0.3);
-
-      // 5. Sentinel-1 SAR & IMD Doppler Radar
-      const sarOpacity = propLayerOpacities?.["layer-sentinel1-sar"] ?? 0.65;
-      const sarVisible = propActiveLayers ? propActiveLayers["layer-sentinel1-sar"] !== false : false;
-      updateGroupStyle(groups.sarSwaths, sarOpacity, sarVisible, 0.35);
-
-      const radarOpacity = propLayerOpacities?.["layer-imd-radar"] ?? 0.6;
-      const radarVisible = propActiveLayers ? propActiveLayers["layer-imd-radar"] !== false : false;
-      updateGroupStyle(groups.radarPrecipitation, radarOpacity, radarVisible, 0.35);
-
-      // 6. Population Density / Demographics
       const popOpacity = propLayerOpacities?.["layer-population-density"] ?? 0.5;
       const popVisible = propActiveLayers ? propActiveLayers["layer-population-density"] !== false : true;
       updateGroupStyle(groups.fullStateNames, popOpacity, popVisible, 0);
@@ -198,10 +164,10 @@ export const AdvancedMap: React.FC<AdvancedMapProps> = ({
     stateBoundaries: true,
     rivers: true,
     terrain: true,
-    hazardZones: true,
-    evacuationCorridors: true,
+    hazardZones: false,
+    evacuationCorridors: false,
     incidents: true,
-    shelters: true,
+    shelters: false,
   });
 
   const updateZoomDependentLayers = useCallback((zoom: number, visibility = layerVisibility) => {
@@ -275,6 +241,7 @@ export const AdvancedMap: React.FC<AdvancedMapProps> = ({
   }, [layerVisibility]);
 
   const toggleLayer = (key: keyof typeof layerVisibility) => {
+    if (key === "hazardZones" || key === "evacuationCorridors" || key === "shelters") return;
     setLayerVisibility((prev) => {
       const next = { ...prev, [key]: !prev[key] };
       const map = mapInstanceRef.current;
@@ -287,34 +254,11 @@ export const AdvancedMap: React.FC<AdvancedMapProps> = ({
           if (next.baseMap) map.addLayer(group);
           else map.removeLayer(group);
         }
-      } else if (key === "hazardZones") {
-        const group = layersGroupRef.current.hazardZones;
-        if (group) {
-          if (next.hazardZones) map.addLayer(group);
-          else map.removeLayer(group);
-        }
       } else if (key === "incidents") {
         const group = layersGroupRef.current.incidents;
         if (group) {
           if (next.incidents) map.addLayer(group);
           else map.removeLayer(group);
-        }
-      } else if (key === "shelters") {
-        const group = layersGroupRef.current.shelters;
-        if (group) {
-          if (next.shelters) map.addLayer(group);
-          else map.removeLayer(group);
-        }
-      } else if (key === "evacuationCorridors") {
-        const evacGroup = layersGroupRef.current.evacuationCorridors;
-        if (evacGroup) {
-          if (next.evacuationCorridors) map.addLayer(evacGroup);
-          else map.removeLayer(evacGroup);
-        }
-        const cutoffsGroup = layersGroupRef.current.roadCutoffs;
-        if (cutoffsGroup) {
-          if (next.evacuationCorridors) map.addLayer(cutoffsGroup);
-          else map.removeLayer(cutoffsGroup);
         }
       }
 
@@ -714,7 +658,7 @@ export const AdvancedMap: React.FC<AdvancedMapProps> = ({
       });
 
       // --- 9. HAZARD ZONES LAYER ---
-      const hazardGroup = L.layerGroup().addTo(map);
+      const hazardGroup = L.layerGroup();
       layersGroupRef.current.hazardZones = hazardGroup;
 
       // Authoritative Hazard Polygons
@@ -794,7 +738,7 @@ export const AdvancedMap: React.FC<AdvancedMapProps> = ({
       hazardGroup.addLayer(assamHazard);
 
       // --- 9B. CRITICAL EVACUATION CORRIDORS & ROAD CUTOFFS ---
-      const evacuationGroup = L.layerGroup().addTo(map);
+      const evacuationGroup = L.layerGroup();
       layersGroupRef.current.evacuationCorridors = evacuationGroup;
 
       CRITICAL_EVACUATION_CORRIDORS.forEach((corridor) => {
@@ -826,7 +770,7 @@ export const AdvancedMap: React.FC<AdvancedMapProps> = ({
       });
 
       // Road Cutoff Chokepoints
-      const cutoffsGroup = L.layerGroup().addTo(map);
+      const cutoffsGroup = L.layerGroup();
       layersGroupRef.current.roadCutoffs = cutoffsGroup;
 
       ROAD_CUTOFF_CHOKEPOINTS.forEach((cutoff) => {
@@ -855,7 +799,7 @@ export const AdvancedMap: React.FC<AdvancedMapProps> = ({
       });
 
       // --- 10. TACTICAL SHELTERS LAYER ---
-      const sheltersGroup = L.layerGroup().addTo(map);
+      const sheltersGroup = L.layerGroup();
       layersGroupRef.current.shelters = sheltersGroup;
 
       SAFE_SHELTERS.forEach((shelter) => {
@@ -877,7 +821,7 @@ export const AdvancedMap: React.FC<AdvancedMapProps> = ({
               <div class="font-bold text-cyan-400">${shelter.name}</div>
               <div class="text-[10px] text-slate-300 mt-1">CAPACITY: ${shelter.capacity}</div>
               <div class="text-[10px] text-cyan-300 mt-0.5">RADIO FREQ: ${shelter.radioFreq}</div>
-              <div class="text-[10px] text-emerald-400 mt-0.5">STATUS: OPERATIONAL HAVEN</div>
+              <div class="text-[10px] text-amber-300 mt-0.5">DEMO RECORD · NOT VERIFIED</div>
             </div>
           `);
         sheltersGroup.addLayer(shelterMarker);
@@ -936,92 +880,7 @@ export const AdvancedMap: React.FC<AdvancedMapProps> = ({
         incidentsGroup.addLayer(incidentMarker);
       });
 
-      // --- 12. NATIONAL COMMAND CENTER (DELHI HQ) ---
-      const hqIcon = L.divIcon({
-        className: "tactical-marker-clean",
-        html: `
-          <div class="flex items-center gap-1.5 bg-[#05070e]/95 border border-cyan-400 px-2 py-0.5 rounded-xs shadow-xl cursor-pointer">
-            <div class="w-2 h-2 bg-cyan-400 rotate-45"></div>
-            <div class="font-mono text-[9px] font-bold text-white">DELHI // ISIE HQ</div>
-          </div>
-        `,
-        iconSize: [120, 22],
-        iconAnchor: [60, 11],
-      });
-      const hqMarker = L.marker([28.6139, 77.2090], { icon: hqIcon }).bindPopup(`
-        <div class="font-mono text-xs p-1 text-slate-100">
-          <div class="font-bold text-cyan-400">ISIE NATIONAL SITUATION ROOM</div>
-          <div class="text-[10px] text-slate-300 mt-1">NEW DELHI NATIONAL COMMAND CENTER</div>
-          <div class="text-[10px] text-emerald-400 mt-0.5">READINESS: ACTIVE DEFCON-2 WATCH</div>
-        </div>
-      `);
-      incidentsGroup.addLayer(hqMarker);
-
-      // --- 12B. SENTINEL-1 SAR FLOOD RADAR OVERLAY ---
-      const sarGroup = L.layerGroup();
-      layersGroupRef.current.sarSwaths = sarGroup;
-
-      const sarPolygonAssam = L.polygon(
-        [
-          [27.5, 92.5],
-          [27.8, 95.8],
-          [26.0, 95.5],
-          [25.8, 92.2],
-        ],
-        {
-          color: "#06b6d4",
-          weight: 1.5,
-          opacity: 0.65,
-          fillColor: "#0891b2",
-          fillOpacity: 0.25,
-          dashArray: "6, 4",
-        }
-      ).bindTooltip("COPERNICUS SENTINEL-1 SAR // Flood Extent Radar Swath", {
-        className: "tactical-tooltip",
-        sticky: true,
-      });
-      sarGroup.addLayer(sarPolygonAssam);
-
-      const sarPolygonOdisha = L.polygon(
-        [
-          [20.8, 84.5],
-          [21.2, 87.2],
-          [18.5, 86.5],
-          [18.2, 83.8],
-        ],
-        {
-          color: "#06b6d4",
-          weight: 1.5,
-          opacity: 0.65,
-          fillColor: "#0891b2",
-          fillOpacity: 0.25,
-          dashArray: "6, 4",
-        }
-      ).bindTooltip("COPERNICUS SENTINEL-1 SAR // Coastal Surge Inundation Swath", {
-        className: "tactical-tooltip",
-        sticky: true,
-      });
-      sarGroup.addLayer(sarPolygonOdisha);
-
-      // --- 12C. IMD DOPPLER RADAR PRECIPITATION OVERLAY ---
-      const radarGroup = L.layerGroup();
-      layersGroupRef.current.radarPrecipitation = radarGroup;
-
-      const radarCircleOdisha = L.circle([19.8, 85.8], {
-        radius: 120000,
-        color: "#f59e0b",
-        weight: 1.5,
-        opacity: 0.6,
-        fillColor: "#ea580c",
-        fillOpacity: 0.2,
-        dashArray: "3, 5",
-      }).bindTooltip("IMD DOPPLER RADAR // Reflectivity dBZ > 45 (Extreme Rain)", {
-        className: "tactical-tooltip",
-        sticky: true,
-      });
-      radarGroup.addLayer(radarCircleOdisha);
-
-      // --- 13. Dynamic Zoom Listeners for Progressive Reveal ---
+      // --- Dynamic Zoom Listeners for Geographic Reference Layers ---
       map.on("zoom", () => {
         updateZoomDependentLayers(map.getZoom());
       });
@@ -1254,30 +1113,8 @@ export const AdvancedMap: React.FC<AdvancedMapProps> = ({
           </span>
         </div>
         <div className="flex flex-col gap-1 font-mono text-[9px]">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-red-500 shrink-0" />
-            <span className="text-red-400 truncate">RED ZONE // CRITICAL SURGE</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0" />
-            <span className="text-amber-400 truncate">WARNING // ADVISORY BASIN</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-0.5 bg-emerald-400 shrink-0" />
-            <span className="text-emerald-300 truncate">EVACUATION CORRIDOR // OPEN</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-0.5 bg-red-400 shrink-0 border-b border-dashed" />
-            <span className="text-red-400 truncate">ROAD CUTOFF // SEVERED</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-xs bg-cyan-400 shrink-0" />
-            <span className="text-isie-cyan truncate">SAFE HAVEN // SHELTER DEPOT</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-sky-400 shrink-0" />
-            <span className="text-sky-300 truncate">STATE & PHYSIOGRAPHIC MATRIX</span>
-          </div>
+          <span className="text-sky-300">Map features: geographic reference</span>
+          <span className="text-amber-300">Hazards, routes & shelters: no connected provider</span>
         </div>
       </div>
 
@@ -1297,14 +1134,11 @@ export const AdvancedMap: React.FC<AdvancedMapProps> = ({
           </div>
           <div className="space-y-1.5 max-h-60 overflow-y-auto pr-1 font-mono text-[11px]">
             {[
-              { key: "baseMap" as const, label: "Geographic Base Map (OpenStreetMap - Live)" },
-              { key: "stateBoundaries" as const, label: "State Names & Capital Network (Zoom Progressive)" },
-              { key: "rivers" as const, label: "River Basins & Hydrology (Ganga, Brahmaputra)" },
-              { key: "terrain" as const, label: "Terrain, Peaks & Dams (Zoom Progressive)" },
-              { key: "hazardZones" as const, label: "Hazard Red Zones (GLOF, Cyclone Surge)" },
-              { key: "evacuationCorridors" as const, label: "Evacuation Corridors & Road Cutoffs" },
-              { key: "incidents" as const, label: "ISIE Crisis Incidents" },
-              { key: "shelters" as const, label: "Evacuation Shelters / Depots" },
+              { key: "baseMap" as const, label: "Geographic base map" },
+              { key: "stateBoundaries" as const, label: "Reference state names & boundaries" },
+              { key: "rivers" as const, label: "Reference river geography" },
+              { key: "terrain" as const, label: "Reference terrain features" },
+              { key: "incidents" as const, label: "Workspace incident records" },
             ].map(({ key, label }) => (
               <div
                 key={key}
@@ -1319,6 +1153,9 @@ export const AdvancedMap: React.FC<AdvancedMapProps> = ({
                 <Eye className={`w-3.5 h-3.5 shrink-0 ${layerVisibility[key] ? "text-sky-400" : "text-white/20"}`} />
               </div>
             ))}
+            <p className="px-2 py-1 text-[10px] leading-relaxed text-amber-400">
+              Hazard, route, and shelter overlays are unavailable until a source provider is connected.
+            </p>
           </div>
         </div>
       )}

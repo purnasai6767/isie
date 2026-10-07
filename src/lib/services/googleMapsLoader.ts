@@ -31,24 +31,12 @@ if (typeof window !== "undefined") {
 let optionsConfigured = false;
 let loadPromise: Promise<typeof google> | null = null;
 
-// Provisioned AI Studio Google Maps Demo Key for this applet
-export const PROVISIONED_DEMO_KEY = "AIzaSyCPJ8_dk-iSTDIYJTmPypqrT_VbmTbWz1k";
-
-// The legacy restricted key from the imported repo that throws RefererNotAllowedMapError on Cloud Run
-const RESTRICTED_KEYS = ["AIzaSyB9Si5E54C8OTcTOkHYJzhqpMRL5SetW54"];
-
 export function getGoogleMapsApiKey(): string {
   const envKey = (
     process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ||
     (typeof window !== "undefined" && (window as any).__NEXT_DATA__?.env?.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY) ||
     ""
   ).trim();
-
-  // If the env key is missing or is the broken restricted key, use the provisioned demo key
-  if (!envKey || RESTRICTED_KEYS.includes(envKey)) {
-    return PROVISIONED_DEMO_KEY;
-  }
-
   return envKey;
 }
 
@@ -110,4 +98,3 @@ export async function loadGoogleMaps(): Promise<typeof google> {
 
   return loadPromise;
 }
-

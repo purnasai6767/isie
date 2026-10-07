@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Sidebar } from "./Sidebar";
 import { TopCommandBar } from "./TopCommandBar";
 import { CommandPalette } from "../command/CommandPalette";
+import { useAuth } from "@/lib/auth/AuthContext";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -16,6 +17,7 @@ export const AppShell: React.FC<AppShellProps> = ({
   pageTitle,
   scopeBadge,
 }) => {
+  const { user, isDemoMode } = useAuth();
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [quotaExceeded, setQuotaExceeded] = useState(false);
 
@@ -75,6 +77,20 @@ export const AppShell: React.FC<AppShellProps> = ({
 
         {/* Content Viewport */}
         <main className="flex-1 overflow-y-auto scrollbar-thin relative flex flex-col min-h-0">
+          <div
+            role="status"
+            className={`shrink-0 border-b px-4 py-1.5 text-center font-mono text-[9px] uppercase tracking-[0.12em] ${
+              isDemoMode
+                ? "border-amber-400/20 bg-amber-400/[0.06] text-amber-200/80"
+                : "border-white/[0.06] bg-black/20 text-slate-500"
+            }`}
+          >
+            {isDemoMode
+              ? "Explicit demo mode · synthetic exercise records · not live or verified"
+              : user
+                ? "Workspace records only · no external hazard, population, capacity, or routing feeds verified"
+                : "No authenticated data provider · no operational incident or telemetry data available"}
+          </div>
           {children}
         </main>
       </div>

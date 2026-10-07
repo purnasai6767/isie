@@ -109,7 +109,7 @@ export default function CrisisIntelligencePage() {
               </h1>
             </div>
             <p className="text-xs text-isie-text-secondary">
-              Real-time multi-hazard classification, escalation tracking, and rapid habitation risk triage.
+              Workspace incident reports and user-entered status. No real-time hazard provider or automatic risk assessment is connected.
             </p>
           </div>
 
@@ -215,7 +215,7 @@ export default function CrisisIntelligencePage() {
                     <div className="flex items-center justify-between text-[11px] font-mono text-isie-text-secondary pt-2 border-t border-white/5">
                       <span className="truncate max-w-[200px]">{inc.locationName}</span>
                       <span className="text-amber-300 font-semibold shrink-0">
-                        {inc.populationAtRisk.toLocaleString()} At Risk
+                        {inc.populationAtRisk.toLocaleString()} REPORTED
                       </span>
                     </div>
                   </div>
@@ -325,10 +325,10 @@ export default function CrisisIntelligencePage() {
                 {/* Multi-Source Verification Pipeline */}
                 <div className="space-y-2">
                   <span className="text-[10px] text-isie-text-dim uppercase tracking-wider block font-semibold">
-                    MULTI-SOURCE EVIDENCE & SENSOR FEEDS ({selectedIncident.sourceAgencies?.length || selectedIncident.sourceCount || 3})
+                    USER-ENTERED SOURCE NOTES ({selectedIncident.sourceAgencies?.length || selectedIncident.sourceCount || 0})
                   </span>
                   <div className="flex flex-wrap gap-1.5">
-                    {(selectedIncident.sourceAgencies || ["ISRO NDEM", "CWC Hydrology", "IMD Doppler", "Copernicus SAR"]).map(
+                    {(selectedIncident.sourceAgencies || []).map(
                       (agency) => (
                         <span
                           key={agency}

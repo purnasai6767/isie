@@ -77,7 +77,7 @@ export function exportIncidentDataCsv(
 
     const sourceAgenciesJoined = Array.isArray(incident.sourceAgencies) && incident.sourceAgencies.length > 0
       ? incident.sourceAgencies.join("; ")
-      : incident.source || "Official Agency";
+      : incident.source || "Not provided";
 
     const evidenceIdsJoined = Array.isArray(incident.evidenceIds) && incident.evidenceIds.length > 0
       ? incident.evidenceIds.join("; ")
@@ -116,20 +116,20 @@ export function exportIncidentDataCsv(
       incident.detectionTime || incident.timestamp || "N/A",
       incident.createdAt || "N/A",
       incident.updatedAt || "N/A",
-      incident.createdByName || incident.createdBy || "System Ingestion",
-      incident.source || "Official Telemetry",
+      incident.createdByName || incident.createdBy || "Not provided",
+      incident.source || "Not provided",
       sourceAgenciesJoined,
       incident.sourceCount || (Array.isArray(incident.sourceAgencies) ? incident.sourceAgencies.length : 1),
-      incident.confidence || "HIGH",
+      incident.confidence || "Not provided",
       incident.confidenceScore !== undefined ? incident.confidenceScore : "N/A",
-      incident.verificationStatus || "VERIFIED",
+      incident.verificationStatus || "UNVERIFIED",
       incident.summary || "",
       incident.description || incident.additionalNotes || "",
       evidenceIdsJoined,
       auditHistoryJoined,
-      options?.officerName || "Authorized Operator",
-      options?.officerRole || "Command / Decision Maker",
-      options?.callsign || "DIR-OP",
+      options?.officerName || "Workspace Operator",
+      options?.officerRole || "Not provided",
+      options?.callsign || "Not provided",
       options?.organization || "National Disaster Management Authority",
       exportTimeUtc,
     ];

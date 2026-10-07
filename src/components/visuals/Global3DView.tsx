@@ -25,7 +25,6 @@ import {
   Moon,
 } from "lucide-react";
 import { TacticalBadge } from "../ui/TacticalBadge";
-import { DEMO_INCIDENTS } from "@/data/demo/incidents";
 import {
   CONTINENTS,
   COUNTRIES,
@@ -202,12 +201,12 @@ interface FocusTarget {
 }
 
 const FOCUS_PRESETS: FocusTarget[] = [
-  { id: "INDIA", label: "INDIA THEATER", lat: 22.5, lon: 78.9, dist: 98, description: "National Operational Picture" },
+  { id: "INDIA", label: "INDIA", lat: 22.5, lon: 78.9, dist: 98, description: "India map view" },
   { id: "GLOBAL", label: "GLOBAL VIEW", lat: 20.0, lon: 40.0, dist: 185, description: "Planetary Geospatial Overview" },
-  { id: "CHAMOLI", label: "CHAMOLI // GLOF", lat: 30.55, lon: 79.56, dist: 68, description: "Alaknanda Basin Surge Zone" },
-  { id: "ASSAM", label: "BRAHMAPUTRA", lat: 26.68, lon: 93.35, dist: 68, description: "River Basin Embankment Sector" },
-  { id: "CYCLONE", label: "BAY OF BENGAL", lat: 19.81, lon: 85.83, dist: 70, description: "Cyclone Varun Surge Corridor" },
-  { id: "HQ", label: "DELHI HQ", lat: 28.61, lon: 77.21, dist: 67, description: "ISIE National Situation Room" },
+  { id: "CHAMOLI", label: "CHAMOLI", lat: 30.55, lon: 79.56, dist: 68, description: "Chamoli, India" },
+  { id: "ASSAM", label: "BRAHMAPUTRA", lat: 26.68, lon: 93.35, dist: 68, description: "Brahmaputra region, India" },
+  { id: "CYCLONE", label: "BAY OF BENGAL", lat: 19.81, lon: 85.83, dist: 70, description: "Bay of Bengal map view" },
+  { id: "HQ", label: "DELHI", lat: 28.61, lon: 77.21, dist: 67, description: "Delhi, India" },
 ];
 
 export const Global3DView: React.FC<Global3DViewProps> = ({
@@ -217,7 +216,7 @@ export const Global3DView: React.FC<Global3DViewProps> = ({
   onSelectIncident,
   incidents,
 }) => {
-  const activeIncidents = incidents !== undefined ? incidents : DEMO_INCIDENTS;
+  const activeIncidents = incidents ?? [];
   const mountRef = useRef<HTMLDivElement>(null);
   const labelCanvasRef = useRef<HTMLCanvasElement>(null);
   const [isRotating, setIsRotating] = useState(false);
@@ -693,7 +692,7 @@ export const Global3DView: React.FC<Global3DViewProps> = ({
         let matched: IntelligenceEvent | null = null;
         let closestDist = 24;
 
-        for (const inc of DEMO_INCIDENTS) {
+        for (const inc of activeIncidents) {
           const pos = latLonToVector3(inc.coordinates.lat, inc.coordinates.lng, GLOBE_RADIUS * 1.008);
           const normal = pos.clone().normalize();
           if (normal.dot(camera.position.clone().normalize()) > 0.2) {

@@ -185,7 +185,7 @@ export const TopCommandBar: React.FC<TopCommandBarProps> = ({
         <button
           onClick={() => setSearchModalOpen(true)}
           className="relative p-2 text-isie-text-secondary hover:text-amber-400 hover:bg-amber-950/30 rounded-sm transition-colors group"
-          title="Google Search Grounding (Gemini 3.5 Flash)"
+          title="Google Search grounding (Gemini)"
         >
           <Globe className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
           <span className="sr-only">Search Grounding</span>
@@ -195,7 +195,7 @@ export const TopCommandBar: React.FC<TopCommandBarProps> = ({
         <button
           onClick={() => setMapsModalOpen(true)}
           className="relative p-2 text-isie-text-secondary hover:text-sky-400 hover:bg-sky-950/30 rounded-sm transition-colors group"
-          title="Google Maps Grounding (Gemini 3.5 Flash)"
+          title="Google Maps grounding (Gemini)"
         >
           <MapPin className="w-4 h-4 text-sky-400 group-hover:scale-110 transition-transform" />
           <span className="sr-only">Maps Grounding</span>
@@ -205,7 +205,7 @@ export const TopCommandBar: React.FC<TopCommandBarProps> = ({
         <button
           onClick={() => setTranscribeModalOpen(true)}
           className="relative p-2 text-isie-text-secondary hover:text-amber-400 hover:bg-amber-950/30 rounded-sm transition-colors group"
-          title="Voice Dispatch & Transcribe (Gemini 3.5 Transcribe)"
+          title="Transcribe user-provided audio (Gemini)"
         >
           <Mic className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
           <span className="sr-only">Voice Transcribe</span>
@@ -293,7 +293,7 @@ export const TopCommandBar: React.FC<TopCommandBarProps> = ({
                 >
                   OPEN NOTIFICATION CENTER →
                 </Link>
-                <span className="text-isie-text-dim">TELEMETRY LIVE</span>
+                <span className="text-isie-text-dim">WORKSPACE NOTIFICATIONS</span>
               </div>
             </div>
           )}

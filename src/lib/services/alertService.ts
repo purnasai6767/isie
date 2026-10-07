@@ -19,10 +19,11 @@ export class AlertService implements IAlertService {
   private demoAlerts: Alert[] = [...DEMO_ALERTS];
 
   async getActiveAlerts(scopeOrDemo?: string | boolean, isDemoMode?: boolean): Promise<Alert[]> {
-    const isDemo = typeof scopeOrDemo === "boolean" ? scopeOrDemo : (isDemoMode ?? true);
-    if (isDemo || !auth.currentUser) {
+    const isDemo = typeof scopeOrDemo === "boolean" ? scopeOrDemo : (isDemoMode ?? false);
+    if (isDemo) {
       return [...this.demoAlerts];
     }
+    if (!auth.currentUser) return [];
 
     try {
       const alertsCol = collection(db, "alerts");
@@ -40,13 +41,14 @@ export class AlertService implements IAlertService {
     }
   }
 
-  async acknowledgeAlert(alertId: string, isDemoMode: boolean = true): Promise<boolean> {
+  async acknowledgeAlert(alertId: string, isDemoMode: boolean = false): Promise<boolean> {
     if (isDemoMode) {
       this.demoAlerts = this.demoAlerts.map((a) =>
         a.id === alertId ? { ...a, status: "ACKNOWLEDGED" as const } : a
       );
       return true;
     }
+    if (!auth.currentUser) return false;
 
     try {
       const alertRef = doc(db, "alerts", alertId);
@@ -61,11 +63,12 @@ export class AlertService implements IAlertService {
     }
   }
 
-  async dismissAlert(alertId: string, isDemoMode: boolean = true): Promise<boolean> {
+  async dismissAlert(alertId: string, isDemoMode: boolean = false): Promise<boolean> {
     if (isDemoMode) {
       this.demoAlerts = this.demoAlerts.filter((a) => a.id !== alertId);
       return true;
     }
+    if (!auth.currentUser) return false;
 
     try {
       const alertRef = doc(db, "alerts", alertId);
@@ -79,13 +82,14 @@ export class AlertService implements IAlertService {
     }
   }
 
-  async muteAlert(alertId: string, isDemoMode: boolean = true): Promise<boolean> {
+  async muteAlert(alertId: string, isDemoMode: boolean = false): Promise<boolean> {
     if (isDemoMode) {
       this.demoAlerts = this.demoAlerts.map((a) =>
         a.id === alertId ? { ...a, status: "MUTED" as const } : a
       );
       return true;
     }
+    if (!auth.currentUser) return false;
 
     try {
       const alertRef = doc(db, "alerts", alertId);

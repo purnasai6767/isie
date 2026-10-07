@@ -22,7 +22,6 @@ import {
 } from "lucide-react";
 import { TacticalBadge } from "../ui/TacticalBadge";
 import { IntelligenceEvent } from "@/lib/types/isie";
-import { DEMO_INCIDENTS } from "@/data/demo/incidents";
 import {
   loadGoogleMaps,
   getGoogleMapsApiKey,
@@ -47,7 +46,7 @@ export const GoogleMaps3DView: React.FC<GoogleMaps3DViewProps> = ({
   incidents,
   onFallbackToThreeGlobe,
 }) => {
-  const activeIncidents = incidents !== undefined ? incidents : DEMO_INCIDENTS;
+  const activeIncidents = incidents ?? [];
   const containerRef = useRef<HTMLDivElement>(null);
   const map3dElementRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);

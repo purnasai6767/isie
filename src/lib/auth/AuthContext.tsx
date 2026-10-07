@@ -11,7 +11,6 @@ import {
   fbSignOut,
   onAuthStateChanged,
   syncUserProfile,
-  verifyFirestoreConnection,
   FirestoreUserProfile,
 } from "@/lib/firebase/client";
 
@@ -58,26 +57,14 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const STORAGE_KEY = "isie_auth_session";
+const DEMO_OPT_IN_KEY = "isie_demo_opt_in";
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<AuthUser | null>(DEFAULT_DEMO_USER);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
   // Listen to Firebase Auth state
   useEffect(() => {
-    // Try local session first
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setUser(JSON.parse(stored));
-      } else {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DEMO_USER));
-        setUser(DEFAULT_DEMO_USER);
-      }
-    } catch {
-      setUser(DEFAULT_DEMO_USER);
-    }
-
     // Listen to Firebase Auth state for real users
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       if (fbUser) {
@@ -86,7 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: fbUser.uid,
           name: fbUser.displayName || synced?.displayName || "Tactical Operator",
           email: fbUser.email || "",
-          role: synced?.role || "OPERATOR",
+          role: synced?.role || "VIEWER",
           organization: synced?.organization || "National Crisis Command",
           clearance: synced?.clearance || "Level 4 Strategic",
           callsign: synced?.callsign || (fbUser.displayName?.slice(0, 4).toUpperCase() || "OPR") + "-TAC",
@@ -99,16 +86,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           localStorage.setItem(STORAGE_KEY, JSON.stringify(mappedUser));
         } catch {}
       } else {
-        // If not authenticated via Firebase, check if user was on demo mode
+        // Demo data is available only after an explicit demo-mode opt-in.
         try {
           const stored = localStorage.getItem(STORAGE_KEY);
-          if (stored) {
-            const parsed = JSON.parse(stored);
-            if (parsed.isDemo) {
-              setUser(parsed);
-            }
+          const demoOptedIn = localStorage.getItem(DEMO_OPT_IN_KEY) === "true";
+          if (stored && demoOptedIn) {
+            const parsed = JSON.parse(stored) as AuthUser;
+            setUser(parsed.isDemo ? parsed : null);
+          } else {
+            localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem(DEMO_OPT_IN_KEY);
+            setUser(null);
           }
-        } catch {}
+        } catch (error) {
+          console.error("Could not restore the explicitly selected demo session.", error);
+          setUser(null);
+        }
       }
       setIsInitializing(false);
     });
@@ -125,7 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: result.user.uid,
           name: result.user.displayName || synced?.displayName || "Operator",
           email: result.user.email || "",
-          role: synced?.role || "OPERATOR",
+          role: synced?.role || "VIEWER",
           organization: synced?.organization || "National Crisis Center",
           clearance: synced?.clearance || "Strategic Level 4",
           callsign: synced?.callsign || "DIR-GOOGLE",
@@ -178,6 +171,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (typeof window !== "undefined") {
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DEMO_USER));
+          localStorage.setItem(DEMO_OPT_IN_KEY, "true");
         } catch {}
       }
       return { success: true, isDemo: true };
@@ -191,7 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         id: credential.user.uid,
         name: credential.user.displayName || synced?.displayName || email.split("@")[0].toUpperCase(),
         email: credential.user.email || email,
-        role: synced?.role || "OPERATOR",
+        role: synced?.role || "VIEWER",
         organization: synced?.organization || "National Crisis Command",
         clearance: synced?.clearance || "Level 3 Command",
         callsign: synced?.callsign || "TAC-CMD",
@@ -202,6 +196,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (typeof window !== "undefined") {
         try {
           localStorage.setItem(STORAGE_KEY, JSON.stringify(authedUser));
+          localStorage.removeItem(DEMO_OPT_IN_KEY);
         } catch {}
       }
       return { success: true, isDemo: false };
@@ -216,6 +211,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (typeof window !== "undefined") {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_DEMO_USER));
+        localStorage.setItem(DEMO_OPT_IN_KEY, "true");
       } catch {}
       window.location.href = "/dashboard";
     }
@@ -238,7 +234,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         const synced = await syncUserProfile(cred.user, {
           displayName: data.name,
-          role: data.role || "OPERATOR",
+          role: "VIEWER",
           organization: data.organization || "National Crisis Command",
           clearance: "Strategic Operator Level 3",
           callsign: (data.name.slice(0, 4) || "OPER").toUpperCase() + "-01",
@@ -248,7 +244,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           id: cred.user.uid,
           name: data.name || synced?.displayName || "Operator",
           email: cred.user.email || data.email,
-          role: synced?.role || data.role || "OPERATOR",
+          role: synced?.role || "VIEWER",
           organization: synced?.organization || data.organization || "National Crisis Command",
           clearance: synced?.clearance || "Strategic Operator Level 3",
           callsign: synced?.callsign || "OPER-01",
@@ -259,6 +255,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (typeof window !== "undefined") {
           try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(authedUser));
+            localStorage.removeItem(DEMO_OPT_IN_KEY);
           } catch {}
         }
         return { success: true };
@@ -276,6 +273,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (typeof window !== "undefined") {
       try {
         localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(DEMO_OPT_IN_KEY);
       } catch {}
       window.location.href = "/signin";
     }
@@ -286,7 +284,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         isAuthenticated: !!user,
-        isDemoMode: user?.isDemo ?? true,
+        isDemoMode: user?.isDemo ?? false,
         login,
         loginWithGoogle,
         loginDemo,

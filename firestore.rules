@@ -32,7 +32,11 @@ service cloud.firestore {
 
     // User profile document & private tactical logs
     match /users/{userId} {
-      allow read, write: if isOwner(userId) || isAdmin();
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId) && request.resource.data.role == 'VIEWER';
+      allow update: if isAdmin()
+        || (isOwner(userId) && request.resource.data.role == resource.data.role);
+      allow delete: if isAdmin();
 
       // Subcollection for tactical logs, voice transcriptions, and geo-grounded reports
       match /tactical_logs/{logId} {
@@ -46,9 +50,13 @@ service cloud.firestore {
       allow create: if isOperator()
         && request.resource.data.title is string
         && request.resource.data.severity is string
+        && request.resource.data.status == 'REPORTED'
+        && request.resource.data.verificationStatus == 'AWAITING_VERIFICATION'
         && request.resource.data.coordinates.lat is number
         && request.resource.data.coordinates.lng is number;
-      allow update: if isOperator() || isAnalyst();
+      allow update: if (isOperator() || isAnalyst())
+        && request.resource.data.status != 'VERIFIED'
+        && request.resource.data.verificationStatus == resource.data.verificationStatus;
       allow delete: if isAdmin();
     }
 
@@ -90,6 +98,12 @@ service cloud.firestore {
 
     // Broadcast Notifications
     match /notifications/{notificationId} {
+      allow read: if isAuthenticated();
+      allow write: if isOperator();
+    }
+
+    // Workspace response resources
+    match /resources/{resourceId} {
       allow read: if isAuthenticated();
       allow write: if isOperator();
     }

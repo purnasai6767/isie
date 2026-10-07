@@ -76,19 +76,19 @@ export default function ProfilePage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <div className="text-isie-text-dim text-[10px] uppercase">PRIMARY SECTOR</div>
-                  <div className="font-semibold text-white mt-1">NATIONAL STRATEGIC (IND-NAT-01)</div>
+                  <div className="font-semibold text-white mt-1">{user?.organization || "NOT CONFIGURED"}</div>
                 </div>
                 <div>
-                  <div className="text-isie-text-dim text-[10px] uppercase">RELOCATION JURISDICTION</div>
-                  <div className="font-semibold text-white mt-1">MULTI-DISTRICT TIER 1</div>
+                  <div className="text-isie-text-dim text-[10px] uppercase">OPERATING JURISDICTION</div>
+                  <div className="font-semibold text-white mt-1">NOT CONFIGURED</div>
                 </div>
                 <div>
                   <div className="text-isie-text-dim text-[10px] uppercase">SATELLITE DOWNLINK ACCESS</div>
-                  <div className="font-semibold text-emerald-400 mt-1">SENTINEL-1/2 HIGH RESOLUTION</div>
+                  <div className="font-semibold text-amber-400 mt-1">NOT CONNECTED</div>
                 </div>
                 <div>
                   <div className="text-isie-text-dim text-[10px] uppercase">SIMULATION AUTHORIZATION</div>
-                  <div className="font-semibold text-indigo-400 mt-1">UNRESTRICTED STOCHASTIC</div>
+                  <div className="font-semibold text-amber-400 mt-1">SIMULATION BACKEND NOT CONNECTED</div>
                 </div>
               </div>
             </div>

@@ -24,20 +24,20 @@ export class IntelligenceService implements IIntelligenceService {
    * Seamlessly routes to Firestore in Real User Mode or DEMO_INCIDENTS in Demo Mode.
    */
   async getActiveEvents(scopeOrDemo?: string | boolean, isDemoMode?: boolean): Promise<IntelligenceEvent[]> {
-    const isDemo = typeof scopeOrDemo === "boolean" ? scopeOrDemo : (isDemoMode ?? true);
+    const isDemo = typeof scopeOrDemo === "boolean" ? scopeOrDemo : (isDemoMode ?? false);
     return incidentService.getIncidents(isDemo);
   }
 
-  async getEventById(id: string, isDemoMode: boolean = true): Promise<IntelligenceEvent | null> {
+  async getEventById(id: string, isDemoMode: boolean = false): Promise<IntelligenceEvent | null> {
     return incidentService.getIncidentById(id, isDemoMode);
   }
 
-  async getEvidenceForEvent(eventId: string, isDemoMode: boolean = true): Promise<EvidenceItem[]> {
+  async getEvidenceForEvent(eventId: string, isDemoMode: boolean = false): Promise<EvidenceItem[]> {
     const all = await this.getAllAuthoritativeEvidence(isDemoMode);
     return all.filter((e) => e.relatedEventIds.includes(eventId));
   }
 
-  async getAllAuthoritativeEvidence(isDemoMode: boolean = true): Promise<EvidenceItem[]> {
+  async getAllAuthoritativeEvidence(isDemoMode: boolean = false): Promise<EvidenceItem[]> {
     if (isDemoMode) {
       return [...DEMO_EVIDENCE];
     }
@@ -59,9 +59,10 @@ export class IntelligenceService implements IIntelligenceService {
   }
 
   async verifyEvidence(evidenceId: string): Promise<{ success: boolean; status: VerificationStatus }> {
+    console.warn(`Evidence verification requires an authorized review workflow: ${evidenceId}`);
     return {
-      success: true,
-      status: "VERIFIED_BY_AUTHORITY",
+      success: false,
+      status: "AWAITING_VERIFICATION",
     };
   }
 }

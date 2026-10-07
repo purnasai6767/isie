@@ -123,32 +123,28 @@ export function CreateIncidentModal({
   const [title, setTitle] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<EventCategory>("NATURAL_HAZARD");
   const [selectedType, setSelectedType] = useState<IncidentSpecificType>("Flood");
-  const [severity, setSeverity] = useState<SeverityLevel>("HIGH");
-  const [status, setStatus] = useState<EventStatus>("ACTIVE");
+  const [severity, setSeverity] = useState<SeverityLevel>("INFORMATIONAL");
+  const [status, setStatus] = useState<EventStatus>("REPORTED");
   const [description, setDescription] = useState("");
 
   // Location State
-  const [country, setCountry] = useState("India");
-  const [stateName, setStateName] = useState("Uttarakhand");
-  const [district, setDistrict] = useState("Chamoli");
-  const [locationName, setLocationName] = useState("Chamoli Sector, Uttarakhand");
-  const [latitude, setLatitude] = useState("30.3165");
-  const [longitude, setLongitude] = useState("79.5461");
+  const [country, setCountry] = useState("");
+  const [stateName, setStateName] = useState("");
+  const [district, setDistrict] = useState("");
+  const [locationName, setLocationName] = useState("");
+  const [latitude, setLatitude] = useState("");
+  const [longitude, setLongitude] = useState("");
 
   // Impact State
-  const [populationAtRisk, setPopulationAtRisk] = useState("10000");
-  const [affectedAreaKm2, setAffectedAreaKm2] = useState("45");
-  const [infrastructureImpact, setInfrastructureImpact] = useState(
-    "2 bridges severed, 1 feeder substation compromised"
-  );
-  const [criticalFacilities, setCriticalFacilities] = useState("3");
+  const [populationAtRisk, setPopulationAtRisk] = useState("");
+  const [affectedAreaKm2, setAffectedAreaKm2] = useState("");
+  const [infrastructureImpact, setInfrastructureImpact] = useState("");
+  const [criticalFacilities, setCriticalFacilities] = useState("");
 
   // Intelligence State
-  const [source, setSource] = useState("CWC Hydrology / Field Command");
-  const [confidence, setConfidence] = useState<"LOW" | "MODERATE" | "HIGH" | "VERY_HIGH">("HIGH");
-  const [additionalNotes, setAdditionalNotes] = useState(
-    "Rapid sensor stream convergence indicates rising water level. Evacuation tier-1 activated."
-  );
+  const [source, setSource] = useState("");
+  const [confidence, setConfidence] = useState<"LOW" | "MODERATE" | "HIGH" | "VERY_HIGH">("LOW");
+  const [additionalNotes, setAdditionalNotes] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -159,6 +155,7 @@ export function CreateIncidentModal({
   const canCreate = !!user && hasPermission(user.role, "canCreateIncident");
 
   const handleApplyPreset = (preset: typeof LOCATION_PRESETS[0]) => {
+    setCountry("India");
     setStateName(preset.state);
     setDistrict(preset.district);
     setLocationName(`${preset.district}, ${preset.state}, India`);
@@ -190,7 +187,26 @@ export function CreateIncidentModal({
     }
 
     if (!source.trim()) {
-      setError("Authoritative intelligence source is required.");
+      setError("Enter a source note or reference. It will remain unverified.");
+      return;
+    }
+    const populationNum = Number(populationAtRisk);
+    if (!Number.isInteger(populationNum) || populationNum < 0) {
+      setError("Population at risk must be a non-negative whole number.");
+      return;
+    }
+    const areaNum = affectedAreaKm2.trim() ? Number(affectedAreaKm2) : undefined;
+    if (areaNum !== undefined && (!Number.isFinite(areaNum) || areaNum < 0)) {
+      setError("Affected area must be a non-negative number.");
+      return;
+    }
+    const facilitiesNum = criticalFacilities.trim() ? Number(criticalFacilities) : undefined;
+    if (facilitiesNum !== undefined && (!Number.isInteger(facilitiesNum) || facilitiesNum < 0)) {
+      setError("Critical facilities must be a non-negative whole number.");
+      return;
+    }
+    if (!country.trim()) {
+      setError("Country is required.");
       return;
     }
 
@@ -203,20 +219,20 @@ export function CreateIncidentModal({
         category: selectedCategory,
         severity,
         status,
-        summary: description.trim() || `${selectedType} situation reported in ${district}, ${stateName}. Immediate monitoring active.`,
-        locationName: locationName.trim() || `${district}, ${stateName}`,
-        country: country.trim() || "India",
+        summary: description.trim() || `User-submitted ${selectedType} report for ${locationName.trim()}; awaiting independent verification.`,
+        locationName: locationName.trim(),
+        country: country.trim(),
         affectedState: stateName.trim(),
         affectedDistrict: district.trim(),
-        region: `${district.trim()} Sector, ${stateName.trim()}`,
+        region: [district.trim(), stateName.trim()].filter(Boolean).join(", ") || locationName.trim(),
         coordinates: {
           lat: latNum,
           lng: lngNum,
         },
-        populationAtRisk: parseInt(populationAtRisk, 10) || 0,
-        affectedAreaKm2: parseFloat(affectedAreaKm2) || 0,
+        populationAtRisk: populationNum,
+        affectedAreaKm2: areaNum,
         infrastructureImpact: infrastructureImpact.trim(),
-        criticalFacilitiesAffected: parseInt(criticalFacilities, 10) || 0,
+        criticalFacilitiesAffected: facilitiesNum,
         source: source.trim(),
         confidence,
         additionalNotes: additionalNotes.trim(),
@@ -263,7 +279,7 @@ export function CreateIncidentModal({
                 </TacticalBadge>
               </div>
               <p className="text-[10px] text-isie-text-muted font-mono">
-                INITIALIZES INCIDENT RECORD WITH REAL-TIME DOWNSTREAM CASCADES (MAP, GLOBE, ALERTS, RISK)
+                Saves a workspace report; it does not verify hazards or trigger operational alerts.
               </p>
             </div>
           </div>
@@ -430,7 +446,6 @@ export function CreateIncidentModal({
                   >
                     <option value="ACTIVE" className="bg-isie-panel">ACTIVE (Immediate Tactical Response)</option>
                     <option value="REPORTED" className="bg-isie-panel">REPORTED (Awaiting Field Corroboration)</option>
-                    <option value="VERIFIED" className="bg-isie-panel">VERIFIED (Authority Confirmed)</option>
                     <option value="MONITORING" className="bg-isie-panel">MONITORING (Observation Mode)</option>
                     <option value="CONTAINED" className="bg-isie-panel">CONTAINED (Spread Arrested)</option>
                     <option value="RESOLVED" className="bg-isie-panel">RESOLVED (De-escalated)</option>
@@ -459,15 +474,15 @@ export function CreateIncidentModal({
                 <div className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-emerald-400" />
                   <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-white">
-                    2. Geolocation Hierarchy (2D Map & 3D Globe Coordinates)
+                    2. Location and Coordinates
                   </h3>
                 </div>
-                <span className="font-mono text-[10px] text-emerald-400">INDIA-FIRST REGIONS</span>
+                <span className="font-mono text-[10px] text-emerald-400">WORLDWIDE REPORTING</span>
               </div>
 
               {/* Location Presets */}
               <div className="flex flex-wrap items-center gap-1.5 pb-1">
-                <span className="font-mono text-[10px] text-isie-text-dim mr-1">QUICK FILL:</span>
+                <span className="font-mono text-[10px] text-isie-text-dim mr-1">INDIA PLACE PRESETS:</span>
                 {LOCATION_PRESETS.map((p) => (
                   <button
                     key={p.name}
@@ -483,10 +498,11 @@ export function CreateIncidentModal({
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="space-y-1">
                   <label className="font-mono text-[11px] uppercase tracking-wider text-isie-text-muted">
-                    Country
+                    Country *
                   </label>
                   <input
                     type="text"
+                    required
                     value={country}
                     onChange={(e) => setCountry(e.target.value)}
                     className="w-full bg-isie-panel-light/60 border border-white/10 rounded-xs px-3 py-2 text-xs font-mono text-white outline-none focus:border-emerald-500/60"
@@ -495,11 +511,10 @@ export function CreateIncidentModal({
 
                 <div className="space-y-1">
                   <label className="font-mono text-[11px] uppercase tracking-wider text-isie-text-muted">
-                    State *
+                    State / Province
                   </label>
                   <input
                     type="text"
-                    required
                     value={stateName}
                     onChange={(e) => setStateName(e.target.value)}
                     className="w-full bg-isie-panel-light/60 border border-white/10 rounded-xs px-3 py-2 text-xs font-mono text-white outline-none focus:border-emerald-500/60"
@@ -508,11 +523,10 @@ export function CreateIncidentModal({
 
                 <div className="space-y-1">
                   <label className="font-mono text-[11px] uppercase tracking-wider text-isie-text-muted">
-                    District *
+                    City / District
                   </label>
                   <input
                     type="text"
-                    required
                     value={district}
                     onChange={(e) => setDistrict(e.target.value)}
                     className="w-full bg-isie-panel-light/60 border border-white/10 rounded-xs px-3 py-2 text-xs font-mono text-white outline-none focus:border-emerald-500/60"
@@ -584,7 +598,7 @@ export function CreateIncidentModal({
                     min={0}
                     value={populationAtRisk}
                     onChange={(e) => setPopulationAtRisk(e.target.value)}
-                    placeholder="10000"
+                    placeholder="Enter reported estimate"
                     className="w-full bg-isie-panel-light/60 border border-white/10 rounded-xs px-3 py-2 text-xs font-mono text-white outline-none focus:border-amber-500/60"
                   />
                 </div>
@@ -598,7 +612,7 @@ export function CreateIncidentModal({
                     min={0}
                     value={affectedAreaKm2}
                     onChange={(e) => setAffectedAreaKm2(e.target.value)}
-                    placeholder="45"
+                    placeholder="Optional reported value"
                     className="w-full bg-isie-panel-light/60 border border-white/10 rounded-xs px-3 py-2 text-xs font-mono text-white outline-none focus:border-amber-500/60"
                   />
                 </div>
@@ -612,7 +626,7 @@ export function CreateIncidentModal({
                     min={0}
                     value={criticalFacilities}
                     onChange={(e) => setCriticalFacilities(e.target.value)}
-                    placeholder="3"
+                    placeholder="Optional reported value"
                     className="w-full bg-isie-panel-light/60 border border-white/10 rounded-xs px-3 py-2 text-xs font-mono text-white outline-none focus:border-amber-500/60"
                   />
                 </div>
@@ -637,28 +651,28 @@ export function CreateIncidentModal({
               <div className="flex items-center gap-2 pb-1 border-b border-white/10">
                 <Radio className="w-4 h-4 text-cyan-400" />
                 <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-white">
-                  4. Authoritative Intelligence & Confidence
+                  4. Source Note and Operator Assessment
                 </h3>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1 sm:col-span-2">
                   <label className="font-mono text-[11px] uppercase tracking-wider text-isie-text-muted">
-                    Primary Intelligence Source *
+                    Source Note / Reference *
                   </label>
                   <input
                     type="text"
                     required
                     value={source}
                     onChange={(e) => setSource(e.target.value)}
-                    placeholder="e.g., CWC Hydrology / IMD Mausam / Field Command"
+                    placeholder="Who reported this, or a source URL/reference (not independently verified)"
                     className="w-full bg-isie-panel-light/60 border border-white/10 rounded-xs px-3 py-2 text-xs font-mono text-white outline-none focus:border-cyan-500/60"
                   />
                 </div>
 
                 <div className="space-y-1">
                   <label className="font-mono text-[11px] uppercase tracking-wider text-isie-text-muted">
-                    Confidence Tier
+                    Confidence Tier (operator-entered)
                   </label>
                   <select
                     value={confidence}
@@ -667,22 +681,22 @@ export function CreateIncidentModal({
                     }
                     className="w-full bg-isie-panel-light/60 border border-white/10 rounded-xs px-3 py-2 text-xs font-mono text-white outline-none focus:border-cyan-500/60"
                   >
-                    <option value="VERY_HIGH" className="bg-isie-panel">VERY HIGH (98%+ / Triple Corroborated)</option>
-                    <option value="HIGH" className="bg-isie-panel">HIGH (90%+ / Verified Official Agency)</option>
-                    <option value="MODERATE" className="bg-isie-panel">MODERATE (75% / Single Sensor Telemetry)</option>
-                    <option value="LOW" className="bg-isie-panel">LOW (Initial Emerging Lead)</option>
+                    <option value="VERY_HIGH" className="bg-isie-panel">VERY HIGH (operator assessment)</option>
+                    <option value="HIGH" className="bg-isie-panel">HIGH (operator assessment)</option>
+                    <option value="MODERATE" className="bg-isie-panel">MODERATE (operator assessment)</option>
+                    <option value="LOW" className="bg-isie-panel">LOW (operator assessment)</option>
                   </select>
                 </div>
 
                 <div className="space-y-1 sm:col-span-3">
                   <label className="font-mono text-[11px] uppercase tracking-wider text-isie-text-muted">
-                    Additional Operational Directives
+                    Additional Notes (user-provided)
                   </label>
                   <input
                     type="text"
                     value={additionalNotes}
                     onChange={(e) => setAdditionalNotes(e.target.value)}
-                    placeholder="e.g., Relocation route 2 open; standby NDRF batallion alerted."
+                    placeholder="Optional notes; not an operational instruction"
                     className="w-full bg-isie-panel-light/60 border border-white/10 rounded-xs px-3 py-2 text-xs font-mono text-white outline-none focus:border-cyan-500/60"
                   />
                 </div>
@@ -695,7 +709,7 @@ export function CreateIncidentModal({
         <div className="p-4 border-t border-white/10 bg-isie-panel-light/40 flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs font-mono text-isie-text-dim">
             <Compass className="w-3.5 h-3.5 text-isie-primary" />
-            <span>COMMITS TO LIVE FIRESTORE CLUSTER</span>
+            <span>SAVES TO WORKSPACE WHEN FIRESTORE IS CONNECTED</span>
           </div>
 
           <div className="flex items-center gap-2">

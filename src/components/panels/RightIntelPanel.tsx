@@ -18,10 +18,26 @@ export const RightIntelPanel: React.FC<RightIntelPanelProps> = ({ className = ""
   const [activeTab, setActiveTab] = useState<"CAPACITY" | "RELOCATION" | "SUMMARY">("CAPACITY");
   const [capacity, setCapacity] = useState<CarryingCapacityMetrics | null>(null);
   const [relocations, setRelocations] = useState<RelocationIntelligence[]>([]);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
-    riskService.getCarryingCapacityAssessment(undefined, isDemoMode).then(setCapacity);
-    riskService.getRelocationPriorities(undefined, isDemoMode).then(setRelocations);
+    let cancelled = false;
+    setLoadError(false);
+    setCapacity(null);
+    setRelocations([]);
+    Promise.all([
+      riskService.getCarryingCapacityAssessment(undefined, isDemoMode),
+      riskService.getRelocationPriorities(undefined, isDemoMode),
+    ]).then(([assessment, plans]) => {
+      if (cancelled) return;
+      setCapacity(assessment);
+      setRelocations(plans);
+    }).catch(() => {
+      if (!cancelled) setLoadError(true);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [isDemoMode]);
 
   return (
@@ -42,7 +58,7 @@ export const RightIntelPanel: React.FC<RightIntelPanelProps> = ({ className = ""
           </div>
         </div>
         <TacticalBadge variant="cyan" size="sm" className="shrink-0">
-          {isDemoMode ? "SYNTHETIC" : "OPERATIONAL"}
+          {isDemoMode ? "DEMO DATA" : capacity ? "WORKSPACE DATA" : "UNAVAILABLE"}
         </TacticalBadge>
       </div>
 
@@ -82,11 +98,19 @@ export const RightIntelPanel: React.FC<RightIntelPanelProps> = ({ className = ""
 
       {/* Main Panel Content with Scroll Containment */}
       <div className="flex-1 min-h-0 overflow-y-auto p-3.5 space-y-4 scrollbar-thin">
+        {loadError && (
+          <p role="alert" className="rounded border border-red-500/30 bg-red-950/20 p-3 font-mono text-[10px] text-red-300">
+            Could not load workspace assessments. Check the Firestore connection and access rules.
+          </p>
+        )}
+
         {activeTab === "CAPACITY" && (
           <div className="space-y-3.5">
             <div className="flex items-center justify-between font-mono text-xs text-isie-text-muted px-0.5">
-              <span className="truncate uppercase font-medium">CHAMOLI SECTOR MATRIX</span>
-              <span className="text-red-400 font-bold shrink-0 ml-2">DEFICIT CRITICAL</span>
+              <span className="truncate uppercase font-medium">CARRYING CAPACITY MATRIX</span>
+              <span className={`font-bold shrink-0 ml-2 ${capacity ? "text-amber-300" : "text-slate-500"}`}>
+                {capacity ? "WORKSPACE DATA" : "NOT AVAILABLE"}
+              </span>
             </div>
 
             {/* Carrying Capacity Metrics with Generous Padding */}
@@ -99,14 +123,14 @@ export const RightIntelPanel: React.FC<RightIntelPanelProps> = ({ className = ""
                     <span className="truncate">SHELTER LOAD</span>
                   </div>
                   <span className="text-red-400 font-bold text-[10px]">
-                    -{capacity?.populationExposure.capacityDeficitPercentage}%
+                    {capacity ? `${capacity.populationExposure.capacityDeficitPercentage}% deficit` : "NOT AVAILABLE"}
                   </span>
                 </div>
                 <div className="text-sm font-bold text-amber-300 mb-1.5 truncate">
                   {capacity?.populationExposure.currentShelterCapacity.toLocaleString()} BEDS
                 </div>
                 <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden mb-1">
-                  <div className="h-full bg-amber-500 rounded-full" style={{ width: "72%" }} />
+                  {capacity && <div className="h-full bg-amber-500 rounded-full" style={{ width: `${Math.min(100, capacity.populationExposure.capacityDeficitPercentage)}%` }} />}
                 </div>
                 <div className="text-[10px] text-isie-text-dim truncate">
                   Pop: {capacity?.populationExposure.totalHabitationPopulation.toLocaleString()}
@@ -121,20 +145,20 @@ export const RightIntelPanel: React.FC<RightIntelPanelProps> = ({ className = ""
                     <span className="truncate">HOSPITAL SURGE</span>
                   </div>
                   <span className="text-amber-400 text-[10px]">
-                    {capacity?.healthcareAvailability.criticalMedicineSupplyDays}D MEDS
+                    {capacity ? `${capacity.healthcareAvailability.criticalMedicineSupplyDays}D MEDS` : "NOT AVAILABLE"}
                   </span>
                 </div>
                 <div className="text-sm font-bold text-red-300 mb-1.5 truncate">
-                  {capacity?.healthcareAvailability.districtHospitalBedOccupancy}% LOAD
+                  {capacity ? `${capacity.healthcareAvailability.districtHospitalBedOccupancy}% REPORTED` : "NOT AVAILABLE"}
                 </div>
                 <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden mb-1">
                   <div
                     className="h-full bg-red-500 rounded-full"
-                    style={{ width: `${capacity?.healthcareAvailability.districtHospitalBedOccupancy || 88}%` }}
+                    style={{ width: `${capacity ? capacity.healthcareAvailability.districtHospitalBedOccupancy : 0}%` }}
                   />
                 </div>
                 <div className="text-[10px] text-isie-text-dim truncate">
-                  Status: ICU Saturated
+                  {capacity ? `Reported status: ${capacity.healthcareAvailability.districtHospitalBedOccupancy}% occupancy` : "No verified healthcare data"}
                 </div>
               </div>
 
@@ -145,16 +169,16 @@ export const RightIntelPanel: React.FC<RightIntelPanelProps> = ({ className = ""
                     <Droplets className="w-3.5 h-3.5 text-sky-400 shrink-0" />
                     <span className="truncate">WATER BUFFER</span>
                   </div>
-                  <span className="text-sky-300 text-[10px]">CWC GAUGE</span>
+                  <span className="text-sky-300 text-[10px]">{capacity ? "WORKSPACE RECORD" : "NOT CONNECTED"}</span>
                 </div>
                 <div className="text-sm font-bold text-sky-300 mb-1.5 truncate">
                   {capacity?.resourceReserves.potableWaterHoursRemaining} HOURS
                 </div>
                 <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden mb-1">
-                  <div className="h-full bg-sky-400 rounded-full" style={{ width: "45%" }} />
+                  {capacity && <div className="h-full bg-sky-400 rounded-full" style={{ width: `${Math.min(100, (capacity.resourceReserves.potableWaterHoursRemaining / 72) * 100)}%` }} />}
                 </div>
                 <div className="text-[10px] text-isie-text-dim truncate">
-                  Tankers Dispatched: 18
+                  {capacity ? "Workspace assessment value; verify source" : "No verified water data"}
                 </div>
               </div>
 
@@ -165,33 +189,32 @@ export const RightIntelPanel: React.FC<RightIntelPanelProps> = ({ className = ""
                     <Truck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                     <span className="truncate">CORRIDORS</span>
                   </div>
-                  <span className="text-red-400 font-bold text-[10px]">
-                    {capacity?.infrastructureIntegrity.bridgesAtRiskCount} CUTOFF
+                  <span className="text-slate-400 font-bold text-[10px]">
+                    {capacity ? `${capacity.infrastructureIntegrity.bridgesAtRiskCount} REPORTED AT RISK` : "NOT AVAILABLE"}
                   </span>
                 </div>
                 <div className="text-sm font-bold text-amber-300 mb-1.5 truncate">
-                  {capacity?.infrastructureIntegrity.criticalRoadsOperational}% PASSABLE
+                  {capacity ? `${capacity.infrastructureIntegrity.criticalRoadsOperational}% REPORTED OPERATIONAL` : "NOT AVAILABLE"}
                 </div>
                 <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden mb-1">
                   <div
                     className="h-full bg-amber-500 rounded-full"
-                    style={{ width: `${capacity?.infrastructureIntegrity.criticalRoadsOperational || 35}%` }}
+                    style={{ width: `${capacity ? capacity.infrastructureIntegrity.criticalRoadsOperational : 0}%` }}
                   />
                 </div>
                 <div className="text-[10px] text-isie-text-dim truncate">
-                  NH-58 Route Restricted
+                  {capacity ? "Workspace record · confirm with authority" : "No verified route status"}
                 </div>
               </div>
             </div>
 
             {/* Immediate Decision Recommendation Box */}
-            <div className="p-3.5 bg-red-950/20 border-l-4 border-l-red-500 border-white/10 rounded-sm text-xs font-mono">
-              <div className="text-red-300 font-bold uppercase mb-1.5 tracking-wider text-[11px] flex items-center justify-between">
-                <span>Immediate Decision Support</span>
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+            <div className="p-3.5 bg-amber-950/20 border-l-4 border-l-amber-500 border-white/10 rounded-sm text-xs font-mono">
+              <div className="text-amber-200 font-bold uppercase mb-1.5 tracking-wider text-[11px]">
+                Decision support unavailable
               </div>
               <p className="text-[11px] text-isie-text-secondary leading-relaxed break-words">
-                Direct evacuation traffic off damaged Raini Bridge toward Helang bypass corridor. Deploy Mobile Medical Unit 4 to Pipalkoti shelter haven.
+                No verified route, shelter, or live incident feeds are connected. This system cannot issue evacuation, dispatch, or response instructions.
               </p>
             </div>
           </div>
@@ -200,9 +223,13 @@ export const RightIntelPanel: React.FC<RightIntelPanelProps> = ({ className = ""
         {activeTab === "RELOCATION" && (
           <div className="space-y-3">
             <div className="flex items-center justify-between font-mono text-xs text-isie-text-muted px-0.5">
-              <span>PRIORITIZED RELOCATION QUEUE</span>
-              <span className="text-isie-primary font-bold">MODULE 03</span>
+              <span>USER-ENTERED RELOCATION PLANS</span>
+              <span className="text-isie-primary font-bold">{relocations.length ? "WORKSPACE RECORDS" : "NOT AVAILABLE"}</span>
             </div>
+
+            <p className="rounded border border-amber-500/20 bg-amber-950/10 p-3 text-[10px] text-isie-text-secondary">
+              Plan details are not verified recommendations. Confirm destinations, routes, and travel times with responsible authorities.
+            </p>
 
             <div className="space-y-2.5">
               {relocations.map((reloc) => (
@@ -219,13 +246,18 @@ export const RightIntelPanel: React.FC<RightIntelPanelProps> = ({ className = ""
                     </span>
                   </div>
                   <div className="text-[11px] text-isie-text-dim truncate">
-                    DESTINATION: {reloc.designatedShelters[0]?.name}
+                    USER-ENTERED DESTINATION: {reloc.designatedShelters[0]?.name}
                   </div>
                   <div className="text-[11px] text-emerald-400 truncate">
-                    TRANSIT: {reloc.estimatedTransitTimeHours}H VIA {reloc.evacuationRoutesIdentified[0]?.corridorName}
+                    REPORTED TRANSIT: {reloc.estimatedTransitTimeHours}H VIA {reloc.evacuationRoutesIdentified[0]?.corridorName}
                   </div>
                 </div>
               ))}
+              {relocations.length === 0 && (
+                <p className="rounded border border-white/10 p-3 font-mono text-[10px] text-isie-text-dim">
+                  No verified relocation plans are available. No route or shelter recommendation is generated.
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -234,35 +266,19 @@ export const RightIntelPanel: React.FC<RightIntelPanelProps> = ({ className = ""
           <div className="space-y-3 font-mono text-xs">
             <div className="flex items-center justify-between text-xs text-isie-text-muted px-0.5">
               <span>CROSS-DOMAIN EARLY WARNING</span>
-              <span className="text-amber-400 font-bold">2 ESCALATIONS</span>
+              <span className="text-slate-500 font-bold">NO LIVE ALERT FEED</span>
             </div>
 
-            <div className="p-3.5 bg-amber-950/20 border-l-4 border-l-amber-500 border-white/10 rounded-sm space-y-1.5">
-              <div className="text-amber-300 font-bold leading-tight flex items-center justify-between">
-                <span>DHAULIGANGA HYDROGRAPH SURGE</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-              </div>
-              <p className="text-[11px] text-isie-text-secondary leading-relaxed break-words">
-                CWC gauge sensor rate-of-rise: 0.85m/min. Red-zone perimeter expanding downstream toward Helang.
-              </p>
-            </div>
-
-            <div className="p-3.5 bg-sky-950/20 border-l-4 border-l-sky-500 border-white/10 rounded-sm space-y-1.5">
-              <div className="text-isie-cyan font-bold leading-tight flex items-center justify-between">
-                <span>CYCLONE VARUN TRACK INWARD</span>
-                <span className="w-1.5 h-1.5 rounded-full bg-sky-400 animate-pulse" />
-              </div>
-              <p className="text-[11px] text-isie-text-secondary leading-relaxed break-words">
-                Landfall estimated in 14 hours. Pre-positioning 8 coastal rescue battalions.
-              </p>
-            </div>
+            <p className="rounded border border-white/10 p-4 text-[11px] text-isie-text-secondary">
+              No external hazard, forecast, or response provider is connected. No alerts, current conditions, or response instructions are available here.
+            </p>
           </div>
         )}
       </div>
 
       {/* Footer */}
       <div className="px-4 py-2.5 border-t border-white/10 bg-isie-panel-light/20 flex items-center justify-between text-[11px] font-mono text-isie-text-dim shrink-0">
-        <span>MODEL: ENSEMBLE V2.4</span>
+        <span>ASSESSMENTS: USER-ENTERED / DEMO ONLY</span>
         <Link href="/analytics" className="text-isie-cyan hover:underline font-semibold flex items-center gap-1">
           <span>DEEP ANALYTICS</span>
           <ArrowRight className="w-3 h-3" />

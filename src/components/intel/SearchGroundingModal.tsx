@@ -263,7 +263,7 @@ export const SearchGroundingModal: React.FC<SearchGroundingModalProps> = ({
                     </span>
                   </div>
                   <span className="text-[10px] text-emerald-400 font-semibold bg-emerald-950/50 border border-emerald-500/30 px-2 py-0.5 rounded-xs">
-                    VERIFIED VIA GOOGLE SEARCH
+                    SEARCH RESULTS · REVIEW SOURCE
                   </span>
                 </div>
                 <div className="whitespace-pre-line text-[11.5px] leading-relaxed select-text">

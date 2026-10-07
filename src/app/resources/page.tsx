@@ -2,18 +2,92 @@
 
 import React, { useState, useEffect } from "react";
 import { AppShell } from "@/components/layout/AppShell";
-import { Truck, ShieldCheck, Users, HeartPulse, Droplets, Building, Search, Filter } from "lucide-react";
+import { Truck, ShieldCheck, Users, HeartPulse, Droplets, Building, Search, Filter, Plus, X } from "lucide-react";
 import { TacticalBadge } from "@/components/ui/TacticalBadge";
 import { resourceService } from "@/lib/services/resourceService";
 import { ResponseResource } from "@/data/demo/resources";
+import { useAuth } from "@/lib/auth/AuthContext";
+import { hasPermission } from "@/lib/auth/roles";
 
 export default function ResourcesPage() {
+  const { user, isDemoMode } = useAuth();
   const [resources, setResources] = useState<ResponseResource[]>([]);
+  const [loadError, setLoadError] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("ALL");
+  const [showCreate, setShowCreate] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    name: "",
+    category: "RELIEF_SHELTER" as ResponseResource["category"],
+    location: "",
+    sector: "",
+    totalCapacity: "",
+    currentAllocated: "",
+    status: "STANDBY" as ResponseResource["status"],
+    contactCallsign: "",
+  });
+  const canManageResources = !!user && hasPermission(user.role, "canCreateIncident") && !isDemoMode;
+
+  const loadResources = async () => {
+    setLoadError("");
+    try {
+      setResources(await resourceService.getResources(categoryFilter, isDemoMode));
+    } catch {
+      setResources([]);
+      setLoadError("Could not load workspace records. Check the Firestore connection and access rules, then retry.");
+    }
+  };
 
   useEffect(() => {
-    resourceService.getResources(categoryFilter).then(setResources);
-  }, [categoryFilter]);
+    loadResources();
+  }, [categoryFilter, isDemoMode]);
+
+  const saveResource = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!user || !canManageResources) return;
+    setSaving(true);
+    setSaveError("");
+    try {
+      const totalCapacity = Number(form.totalCapacity);
+      const currentAllocated = Number(form.currentAllocated);
+      if (
+        !Number.isInteger(totalCapacity) ||
+        !Number.isInteger(currentAllocated) ||
+        totalCapacity < 1 ||
+        currentAllocated < 0 ||
+        currentAllocated > totalCapacity
+      ) {
+        throw new Error("Capacity and allocated values must be whole numbers; allocation cannot exceed capacity.");
+      }
+      await resourceService.createResource({
+        name: form.name,
+        category: form.category,
+        location: form.location,
+        sector: form.sector,
+        totalCapacity,
+        currentAllocated,
+        status: form.status,
+        contactCallsign: form.contactCallsign,
+      });
+      setShowCreate(false);
+      setForm({
+        name: "",
+        category: "RELIEF_SHELTER",
+        location: "",
+        sector: "",
+        totalCapacity: "",
+        currentAllocated: "",
+        status: "STANDBY",
+        contactCallsign: "",
+      });
+      await loadResources();
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Could not save the resource record.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const categories = [
     { id: "ALL", label: "All Assets" },
@@ -36,16 +110,70 @@ export default function ResourcesPage() {
               </h1>
             </div>
             <p className="text-xs text-isie-text-secondary">
-              Deployment tracking of specialized search & rescue battalions, designated safe havens, and medical corridors.
+              User-entered response resource records. Availability, occupancy, and readiness are not independently verified.
             </p>
           </div>
 
           <div className="flex items-center gap-2">
             <TacticalBadge variant="safe" size="sm">
-              ASSETS READY: {resources.length}
+              WORKSPACE RECORDS: {resources.length}
             </TacticalBadge>
+            {canManageResources && (
+              <button
+                type="button"
+                onClick={() => setShowCreate((open) => !open)}
+                className="inline-flex items-center gap-1 rounded border border-cyan-500/30 px-3 py-1.5 font-mono text-xs text-cyan-300 hover:bg-cyan-500/10"
+              >
+                {showCreate ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
+                {showCreate ? "CANCEL" : "ADD WORKSPACE RECORD"}
+              </button>
+            )}
           </div>
         </div>
+
+        {showCreate && (
+          <form onSubmit={saveResource} className="grid grid-cols-1 gap-3 rounded border border-white/10 bg-isie-panel p-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ["name", "Resource name"],
+              ["location", "Location"],
+              ["sector", "Sector / area"],
+              ["contactCallsign", "Contact reference"],
+              ["totalCapacity", "Total capacity"],
+              ["currentAllocated", "Currently allocated"],
+            ].map(([key, label]) => (
+              <label key={key} className="space-y-1 font-mono text-[10px] uppercase text-isie-text-muted">
+                {label}
+                <input
+                  required
+                  type={key === "totalCapacity" || key === "currentAllocated" ? "number" : "text"}
+                  min={key === "totalCapacity" ? 1 : key === "currentAllocated" ? 0 : undefined}
+                  value={form[key as keyof typeof form]}
+                  onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value }))}
+                  className="w-full rounded border border-white/10 bg-black/20 px-3 py-2 text-xs normal-case text-white"
+                />
+              </label>
+            ))}
+            <label className="space-y-1 font-mono text-[10px] uppercase text-isie-text-muted">
+              Category
+              <select value={form.category} onChange={(event) => setForm((current) => ({ ...current, category: event.target.value as ResponseResource["category"] }))} className="w-full rounded border border-white/10 bg-black/20 px-3 py-2 text-xs text-white">
+                {categories.slice(1).map((category) => <option key={category.id} value={category.id}>{category.label}</option>)}
+                <option value="ENGINEERING">Engineering</option>
+              </select>
+            </label>
+            <label className="space-y-1 font-mono text-[10px] uppercase text-isie-text-muted">
+              Reported status
+              <select value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as ResponseResource["status"] }))} className="w-full rounded border border-white/10 bg-black/20 px-3 py-2 text-xs text-white">
+                {(["STANDBY", "DEPLOYED", "EN_ROUTE", "SATURATED"] as const).map((status) => <option key={status}>{status}</option>)}
+              </select>
+            </label>
+            <div className="flex items-end">
+              <button disabled={saving} className="rounded border border-cyan-500/40 bg-cyan-500/10 px-3 py-2 font-mono text-xs text-cyan-200 disabled:opacity-50">
+                {saving ? "SAVING..." : "SAVE WORKSPACE RECORD"}
+              </button>
+            </div>
+            {saveError && <p role="alert" className="text-xs text-red-300 sm:col-span-2 lg:col-span-4">{saveError}</p>}
+          </form>
+        )}
 
         {/* Filter Pills */}
         <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
@@ -63,6 +191,12 @@ export default function ResourcesPage() {
             </button>
           ))}
         </div>
+
+        {loadError && (
+          <p role="alert" className="rounded border border-red-500/30 bg-red-950/20 p-3 font-mono text-xs text-red-300">
+            {loadError}
+          </p>
+        )}
 
         {/* Resource Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 min-w-0">
@@ -102,7 +236,7 @@ export default function ResourcesPage() {
                 {/* Progress of Allocation */}
                 <div className="space-y-1 font-mono text-[11px]">
                   <div className="flex justify-between text-isie-text-dim">
-                    <span>CAPACITY OCCUPANCY</span>
+                    <span>REPORTED OCCUPANCY</span>
                     <span className="text-white font-semibold">
                       {res.currentAllocated.toLocaleString()} / {res.totalCapacity.toLocaleString()}
                     </span>
@@ -122,11 +256,22 @@ export default function ResourcesPage() {
               </div>
 
               <div className="pt-3 border-t border-white/10 flex items-center justify-between font-mono text-[10px] text-isie-text-dim">
-                <span>CALLSIGN: {res.contactCallsign}</span>
-                <span>READINESS: {res.readinessPercentage}%</span>
+                <span>CONTACT REFERENCE: {res.contactCallsign}</span>
+                <span>
+                  {typeof res.readinessPercentage === "number"
+                    ? `REPORTED READINESS: ${res.readinessPercentage}%`
+                    : "READINESS: NOT REPORTED"}
+                </span>
               </div>
             </div>
           ))}
+          {resources.length === 0 && (
+            <p className="rounded border border-white/10 bg-isie-panel p-6 font-mono text-xs text-isie-text-dim md:col-span-2 lg:col-span-3">
+              {isDemoMode
+                ? "No demo resource records match this filter."
+                : "No resource records are stored for this filter. No availability or readiness is inferred."}
+            </p>
+          )}
         </div>
       </div>
     </AppShell>

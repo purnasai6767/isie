@@ -15,10 +15,11 @@ export interface IRiskService {
 }
 
 export class RiskService implements IRiskService {
-  async getHazardRedZones(_scopeId?: string, isDemoMode: boolean = true): Promise<HazardRedZone[]> {
-    if (isDemoMode || !auth.currentUser) {
+  async getHazardRedZones(_scopeId?: string, isDemoMode: boolean = false): Promise<HazardRedZone[]> {
+    if (isDemoMode) {
       return [...DEMO_RED_ZONES];
     }
+    if (!auth.currentUser) return [];
 
     try {
       const col = collection(db, "hazard_zones");
@@ -32,14 +33,15 @@ export class RiskService implements IRiskService {
       }));
     } catch (err) {
       handleFirestoreError(err, OperationType.LIST, "hazard_zones");
-      return [];
+      throw err;
     }
   }
 
-  async getCarryingCapacityAssessment(zoneId?: string, isDemoMode: boolean = true): Promise<CarryingCapacityMetrics | null> {
-    if (isDemoMode || !auth.currentUser) {
+  async getCarryingCapacityAssessment(zoneId?: string, isDemoMode: boolean = false): Promise<CarryingCapacityMetrics | null> {
+    if (isDemoMode) {
       return DEMO_CARRYING_CAPACITY;
     }
+    if (!auth.currentUser) return null;
 
     try {
       if (zoneId) {
@@ -60,14 +62,15 @@ export class RiskService implements IRiskService {
       return { zoneId: first.id, ...(first.data() as Omit<CarryingCapacityMetrics, "zoneId">) };
     } catch (err) {
       handleFirestoreError(err, OperationType.GET, `carrying_capacity/${zoneId || "all"}`);
-      return null;
+      throw err;
     }
   }
 
-  async getRelocationPriorities(_scopeId?: string, isDemoMode: boolean = true): Promise<RelocationIntelligence[]> {
-    if (isDemoMode || !auth.currentUser) {
+  async getRelocationPriorities(_scopeId?: string, isDemoMode: boolean = false): Promise<RelocationIntelligence[]> {
+    if (isDemoMode) {
       return [...DEMO_RELOCATION_PRIORITIES];
     }
+    if (!auth.currentUser) return [];
 
     try {
       const col = collection(db, "relocation_plans");
@@ -81,7 +84,7 @@ export class RiskService implements IRiskService {
       }));
     } catch (err) {
       handleFirestoreError(err, OperationType.LIST, "relocation_plans");
-      return [];
+      throw err;
     }
   }
 }

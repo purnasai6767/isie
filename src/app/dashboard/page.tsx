@@ -11,7 +11,6 @@ import { RightIntelPanel } from "@/components/panels/RightIntelPanel";
 import { TimelineStrip } from "@/components/timeline/TimelineStrip";
 import { TacticalBadge } from "@/components/ui/TacticalBadge";
 import { Maximize2, Minimize2, Flame, Users, Radio, MapPin, Mic, Globe, Plus } from "lucide-react";
-import { DEMO_INCIDENTS } from "@/data/demo/incidents";
 import { MapsGroundingModal } from "@/components/intel/MapsGroundingModal";
 import { AudioTranscribeModal } from "@/components/intel/AudioTranscribeModal";
 import { SearchGroundingModal } from "@/components/intel/SearchGroundingModal";
@@ -21,7 +20,9 @@ import { incidentService } from "@/lib/services/incidentService";
 import { IntelligenceEvent } from "@/lib/types/isie";
 import { hasPermission } from "@/lib/auth/roles";
 
-import { SafeGlobal3DView as Global3DView } from "@/components/visuals/SafeGlobal3DView";
+const Global3DView = dynamic(() => import("@/components/visuals/SatelliteGlobeView"), {
+  ssr: false,
+});
 
 export default function DashboardPage() {
   const { user, isDemoMode } = useAuth();
@@ -34,7 +35,7 @@ export default function DashboardPage() {
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [transcribeModalOpen, setTranscribeModalOpen] = useState(false);
   const [isCreateIncidentOpen, setIsCreateIncidentOpen] = useState(false);
-  const [incidents, setIncidents] = useState<IntelligenceEvent[]>(isDemoMode ? DEMO_INCIDENTS : []);
+  const [incidents, setIncidents] = useState<IntelligenceEvent[]>([]);
 
   const canCreate = !!user && hasPermission(user.role, "canCreateIncident");
 
@@ -65,13 +66,13 @@ export default function DashboardPage() {
         <div className="h-11 px-4 border-b border-white/10 bg-isie-panel/95 shrink-0 z-20 flex items-center justify-between text-xs font-mono overflow-x-auto scrollbar-none whitespace-nowrap min-w-0">
           {/* Left: Crisis & Defense State */}
           <div className="flex items-center gap-2.5 min-w-0 shrink-0">
-            <span className="w-2 h-2 rounded-full bg-red-500 animate-ping shrink-0" />
+            <span className={`w-2 h-2 rounded-full shrink-0 ${isDemoMode ? "bg-amber-400" : "bg-slate-500"}`} />
             <span className="font-bold text-white uppercase tracking-wider">
-              DEFCON-2 CRISIS STATE
+              {isDemoMode ? "DEMO EXERCISE" : "NO VERIFIED CRISIS FEED"}
             </span>
             <span className="text-isie-text-muted hidden sm:inline">|</span>
             <span className="text-isie-text-secondary hidden sm:inline truncate max-w-[220px]">
-              INDIA NATIONAL SECTOR WATCH
+              NO LIVE PROVIDER CONNECTIONS
             </span>
           </div>
 
@@ -92,23 +93,23 @@ export default function DashboardPage() {
             {/* Active Incident Badge */}
             <div className="flex items-center gap-1.5 px-2 py-0.5 bg-white/[0.04] border border-white/10 rounded-xs">
               <Flame className="w-3.5 h-3.5 text-isie-primary shrink-0" />
-              <span className="text-isie-text-dim text-[11px]">ACTIVE:</span>
+              <span className="text-isie-text-dim text-[11px]">{isDemoMode ? "SAMPLE:" : "RECORDS:"}</span>
               <span className="font-bold text-white">{incidents.length}</span>
-              <span className="text-red-400 text-[10px] font-semibold">({criticalCount} CRIT)</span>
+              {isDemoMode && <span className="text-amber-300 text-[10px] font-semibold">({criticalCount} SAMPLE CRIT)</span>}
             </div>
 
             {/* Population At Risk (Hidden on mobile) */}
             <div className="hidden md:flex items-center gap-1.5 px-2 py-0.5 bg-white/[0.04] border border-white/10 rounded-xs">
               <Users className="w-3.5 h-3.5 text-isie-cyan shrink-0" />
               <span className="text-isie-text-dim text-[11px]">AT RISK:</span>
-              <span className="font-bold text-amber-300">{totalAtRisk.toLocaleString()}</span>
+              <span className="font-bold text-amber-300">{incidents.length ? totalAtRisk.toLocaleString() : "—"}</span>
             </div>
 
             {/* Google Search Grounding Quick Tool */}
             <button
               onClick={() => setSearchModalOpen(true)}
               className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-950/40 hover:bg-amber-900/50 border border-amber-500/30 hover:border-amber-500/60 rounded-xs text-amber-300 text-[11px] transition-colors"
-              title="Query Live Google Search Grounding (Gemini 3.5 Flash)"
+              title="Query configured search grounding provider"
             >
               <Globe className="w-3.5 h-3.5 text-amber-400" />
               <span className="font-semibold tracking-wide hidden sm:inline">SEARCH GROUNDING</span>
@@ -118,7 +119,7 @@ export default function DashboardPage() {
             <button
               onClick={() => setMapsModalOpen(true)}
               className="flex items-center gap-1.5 px-2.5 py-1 bg-sky-950/40 hover:bg-sky-900/50 border border-sky-500/30 hover:border-sky-500/60 rounded-xs text-sky-300 text-[11px] transition-colors"
-              title="Query Google Maps Grounding (Gemini 3.5 Flash)"
+              title="Query configured maps grounding provider"
             >
               <MapPin className="w-3.5 h-3.5 text-sky-400" />
               <span className="font-semibold tracking-wide hidden sm:inline">MAPS GROUNDING</span>
@@ -128,7 +129,7 @@ export default function DashboardPage() {
             <button
               onClick={() => setTranscribeModalOpen(true)}
               className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-950/40 hover:bg-amber-900/50 border border-amber-500/30 hover:border-amber-500/60 rounded-xs text-amber-300 text-[11px] transition-colors"
-              title="Record & Transcribe Voice Dispatch (Gemini 3.5 Transcribe)"
+              title="Transcribe a user-provided audio clip"
             >
               <Mic className="w-3.5 h-3.5 text-amber-400" />
               <span className="font-semibold tracking-wide hidden sm:inline">VOICE DISPATCH</span>
@@ -137,7 +138,7 @@ export default function DashboardPage() {
             {/* Live Telemetry Sensor Stream (Hidden on tablet/mobile) */}
             <div className="hidden xl:flex items-center gap-1.5 px-2 py-0.5 bg-sky-950/40 border border-sky-500/30 rounded-xs text-sky-200 text-[11px]">
               <Radio className="w-3 h-3 text-isie-cyan animate-pulse shrink-0" />
-              <span className="font-semibold tracking-wide">FUSION: LIVE TELEMETRY</span>
+              <span className="font-semibold tracking-wide">NO LIVE TELEMETRY FEED</span>
             </div>
           </div>
         </div>
@@ -200,7 +201,6 @@ export default function DashboardPage() {
                     <div className="relative h-full min-h-0">
                       <Global3DView
                         incidents={incidents}
-                        showOverlay={false}
                         selectedIncidentId={selectedIncidentId}
                         onSelectIncident={(inc) => setSelectedIncidentId(inc?.id || null)}
                       />
@@ -302,7 +302,6 @@ export default function DashboardPage() {
                           <div className="relative h-full min-h-0">
                             <Global3DView
                               incidents={incidents}
-                              showOverlay={false}
                               selectedIncidentId={selectedIncidentId}
                               onSelectIncident={(inc) => setSelectedIncidentId(inc?.id || null)}
                             />

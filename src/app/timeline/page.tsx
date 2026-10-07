@@ -36,7 +36,7 @@ export default function TimelinePage() {
               </h1>
             </div>
             <p className="text-xs text-isie-text-secondary">
-              Chronological alignment of sensor triggers, flood hydrograph progression, and forecasted hazard windows.
+              Timeline of incident records and workspace-entered milestones. No sensor feed or forecast provider is connected.
             </p>
           </div>
 
@@ -67,8 +67,8 @@ export default function TimelinePage() {
 
           <span className="text-isie-text-dim text-[11px]">
             {isDemoMode
-              ? "SYNCHRONIZED WITH CHAMOLI INCIDENT INC-2026-HIM-01"
-              : `SYNCHRONIZED WITH ${events.length} OPERATIONAL ANCHORS`}
+              ? "DEMO EXERCISE TIMELINE"
+              : `${events.length} WORKSPACE RECORDS · NOT A LIVE FEED`}
           </span>
         </div>
 

@@ -879,19 +879,19 @@ export const VolumetricHero: React.FC = () => {
                 <div className="flex items-center justify-between text-[10px] text-isie-text-dim border-b border-white/10 pb-1">
                   <span className="flex items-center gap-1 text-amber-400">
                     <Radio className="w-3 h-3 animate-pulse" />
-                    SPATIAL TARGET LOCK
+                    GLOBE VISUALIZATION
                   </span>
-                  <span className="text-isie-cyan">SYNOPTIC MONITORING ORBIT</span>
+                  <span className="text-isie-cyan">STATIC ORBITAL DISPLAY</span>
                 </div>
                 <div className="text-white font-bold text-xs uppercase tracking-wider">
                   GLOBAL SPATIAL INTELLIGENCE ENVIRONMENT
                 </div>
                 <div className="text-[11px] text-isie-text-secondary leading-snug">
-                  Multi-sensor telemetry ingestion: Spaceborne SAR, macro-meteorological forecasting, hydrological gauge telemetry, and dynamic risk projection.
+                  This visualization does not ingest satellite, weather, river-gauge, or hazard data.
                 </div>
                 <div className="flex items-center justify-between pt-1 text-[9px] text-isie-text-dim border-t border-white/5">
-                  <span>ALT: 421 KM (LEO SYNCHRONIZED)</span>
-                  <span className="text-emerald-400 font-semibold">STATUS: NOMINAL INGESTION</span>
+                  <span>LIVE SENSOR FEEDS: NOT CONNECTED</span>
+                  <span className="text-amber-400 font-semibold">VISUALIZATION ONLY</span>
                 </div>
               </div>
 

@@ -24,7 +24,6 @@ import {
 } from "lucide-react";
 import { TacticalBadge } from "../ui/TacticalBadge";
 import { IntelligenceEvent } from "@/lib/types/isie";
-import { DEMO_INCIDENTS } from "@/data/demo/incidents";
 import {
   loadGoogleMaps,
   getGoogleMapsApiKey,
@@ -121,7 +120,7 @@ export const GoogleMap2DView: React.FC<GoogleMap2DViewProps> = ({
   activeLayers: propActiveLayers,
   layerOpacities: propLayerOpacities,
 }) => {
-  const activeIncidents = incidents !== undefined ? incidents : DEMO_INCIDENTS;
+  const activeIncidents = incidents ?? [];
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<Array<any>>([]);
@@ -198,9 +197,9 @@ export const GoogleMap2DView: React.FC<GoogleMap2DViewProps> = ({
     rivers: true,
     terrain: true,
     incidents: true,
-    hazardZones: true,
-    evacuationCorridors: true,
-    shelters: true,
+    hazardZones: false,
+    evacuationCorridors: false,
+    shelters: false,
   });
 
   // Geographic Navigation Presets for Operator
@@ -360,96 +359,6 @@ export const GoogleMap2DView: React.FC<GoogleMap2DViewProps> = ({
       });
     }
 
-    // 2. Render Authoritative Hazard Polygons
-    if (layerVisibility.hazardZones && AUTHORITATIVE_HAZARD_ZONES) {
-      AUTHORITATIVE_HAZARD_ZONES.forEach((zone) => {
-        const isRed = zone.classification === "RED_ZONE";
-        const strokeColor = isRed ? "#ef4444" : "#f59e0b";
-        const fillColor = isRed ? "#dc2626" : "#d97706";
-
-        const polygon = new google.maps.Polygon({
-          paths: zone.polygon.map(([lat, lng]) => ({ lat, lng })),
-          strokeColor,
-          strokeOpacity: 0.9,
-          strokeWeight: 2,
-          fillColor,
-          fillOpacity: 0.22,
-          map,
-        });
-
-        polygon.addListener("click", () => {
-          setActiveIncident({
-            id: zone.id,
-            eventCode: zone.classification === "RED_ZONE" ? "HAZ-RED" : "HAZ-WARN",
-            title: zone.name,
-            summary: zone.description,
-            severity: isRed ? "CRITICAL" : "HIGH",
-            status: "ACTIVE",
-            timestamp: "CURRENT OPERATIONAL",
-            locationName: zone.name,
-            region: "India Theater Hazard Perimeter",
-            coordinates: { lat: zone.center[0], lng: zone.center[1] },
-            confidenceScore: 0.95,
-            sourceCount: 4,
-            sourceAgencies: ["ISIE Geospatial Engine"],
-            verificationStatus: "VERIFIED_BY_AUTHORITY",
-            affectedHabitationsCount: isRed ? 24 : 12,
-            populationAtRisk: zone.populationExposed,
-            hazardZoneLevel: zone.classification,
-            carryingCapacityStatus: isRed ? "CRITICAL" : "WARNING",
-            relocationScore: isRed ? 92 : 75,
-            escalationRisk: isRed ? "EXTREME" : "ELEVATED",
-            evidenceIds: ["SAT-RADAR-01", "ISIE-GEO-PERIMETER"],
-            category: "HYDROMETEOROLOGICAL",
-          });
-        });
-
-        polygonsRef.current.push(polygon);
-      });
-    }
-
-    // 3. Render Critical Evacuation Corridors
-    if (layerVisibility.evacuationCorridors && CRITICAL_EVACUATION_CORRIDORS) {
-      CRITICAL_EVACUATION_CORRIDORS.forEach((corridor) => {
-        const isSevered = corridor.status === "SEVERED";
-        const isOpen = corridor.status === "OPEN";
-        const color = isSevered ? "#ef4444" : isOpen ? "#10b981" : "#f59e0b";
-
-        const line = new google.maps.Polyline({
-          path: corridor.points.map(([lat, lng]) => ({ lat, lng })),
-          geodesic: true,
-          strokeColor: color,
-          strokeOpacity: 0.95,
-          strokeWeight: 3.5,
-          map,
-        });
-
-        polylinesRef.current.push(line);
-      });
-    }
-
-    // 4. Render Road Cutoffs & Chokepoints
-    if (layerVisibility.evacuationCorridors && ROAD_CUTOFF_CHOKEPOINTS) {
-      ROAD_CUTOFF_CHOKEPOINTS.forEach((cutoff) => {
-        const isSevered = cutoff.status === "SEVERED";
-        const marker = new google.maps.Marker({
-          position: { lat: cutoff.coords[0], lng: cutoff.coords[1] },
-          map,
-          title: `Road Cutoff: ${cutoff.name} (${cutoff.highwayRef})`,
-          icon: {
-            path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-            scale: 4,
-            fillColor: isSevered ? "#ef4444" : "#f59e0b",
-            fillOpacity: 1,
-            strokeColor: "#ffffff",
-            strokeWeight: 1.5,
-            rotation: 180,
-          },
-        });
-        markersRef.current.push(marker);
-      });
-    }
-
     // 5. Render Physiographic Mountain Systems & Landforms (Zoom >= 5.8)
     if (layerVisibility.terrain && currentZoom >= 5.5 && PHYSIOGRAPHIC_FEATURES) {
       PHYSIOGRAPHIC_FEATURES.forEach((feat) => {
@@ -533,45 +442,6 @@ export const GoogleMap2DView: React.FC<GoogleMap2DViewProps> = ({
       });
     }
 
-    // 8. Render Safe Shelters
-    if (layerVisibility.shelters && SAFE_SHELTERS) {
-      SAFE_SHELTERS.forEach((shelter) => {
-        const [lat, lng] = (shelter as any).coords || [(shelter as any).lat, (shelter as any).lng];
-        const marker = new google.maps.Marker({
-          position: { lat, lng },
-          map,
-          title: `Safe Haven: ${shelter.name} (Cap: ${shelter.capacity} | Radio: ${shelter.radioFreq})`,
-          icon: {
-            path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-            scale: 4,
-            fillColor: "#10b981",
-            fillOpacity: 1,
-            strokeColor: "#ffffff",
-            strokeWeight: 1.5,
-          },
-        });
-        markersRef.current.push(marker);
-      });
-    }
-
-    // 9. Central Command HQ (New Delhi)
-    if (CENTRAL_COMMAND_HQ) {
-      const hqMarker = new google.maps.Marker({
-        position: { lat: CENTRAL_COMMAND_HQ.coords[0], lng: CENTRAL_COMMAND_HQ.coords[1] },
-        map,
-        title: `${CENTRAL_COMMAND_HQ.name} - ${CENTRAL_COMMAND_HQ.status}`,
-        icon: {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: 6,
-          fillColor: "#38bdf8",
-          fillOpacity: 1,
-          strokeColor: "#ffffff",
-          strokeWeight: 2,
-        },
-      });
-      markersRef.current.push(hqMarker);
-    }
-
     // 10. Render Incident Markers & Dynamic Hazard Buffers
     if (layerVisibility.incidents) {
       activeIncidents.forEach((inc) => {
@@ -580,24 +450,6 @@ export const GoogleMap2DView: React.FC<GoogleMap2DViewProps> = ({
         const isHigh = inc.severity === "HIGH";
 
         const markerColor = isCritical ? "#ef4444" : isHigh ? "#f59e0b" : "#06b6d4";
-
-        // Draw hazard buffer circle if layer is active
-        if (layerVisibility.hazardZones) {
-          const radiusMeters =
-            inc.severity === "CRITICAL" ? 35000 : inc.severity === "HIGH" ? 22000 : 12000;
-
-          const circle = new google.maps.Circle({
-            strokeColor: markerColor,
-            strokeOpacity: 0.7,
-            strokeWeight: 1.5,
-            fillColor: markerColor,
-            fillOpacity: inc.hazardZoneLevel === "RED_ZONE" ? 0.22 : 0.12,
-            map,
-            center: { lat: inc.coordinates.lat, lng: inc.coordinates.lng },
-            radius: radiusMeters,
-          });
-          polygonsRef.current.push(circle as any);
-        }
 
         // Tactical Custom HTML Marker for Incident
         const marker = new google.maps.Marker({
@@ -889,35 +741,9 @@ export const GoogleMap2DView: React.FC<GoogleMap2DViewProps> = ({
               />
             </label>
 
-            <label className="flex items-center justify-between cursor-pointer py-1 px-1.5 rounded-xs hover:bg-white/5">
-              <span className="text-isie-text-secondary">Hazard Red Zones</span>
-              <input
-                type="checkbox"
-                checked={layerVisibility.hazardZones}
-                onChange={() => toggleLayer("hazardZones")}
-                className="accent-isie-primary"
-              />
-            </label>
-
-            <label className="flex items-center justify-between cursor-pointer py-1 px-1.5 rounded-xs hover:bg-white/5">
-              <span className="text-isie-text-secondary">Evac Routes & Cutoffs</span>
-              <input
-                type="checkbox"
-                checked={layerVisibility.evacuationCorridors}
-                onChange={() => toggleLayer("evacuationCorridors")}
-                className="accent-isie-primary"
-              />
-            </label>
-
-            <label className="flex items-center justify-between cursor-pointer py-1 px-1.5 rounded-xs hover:bg-white/5">
-              <span className="text-isie-text-secondary">Strategic Shelters</span>
-              <input
-                type="checkbox"
-                checked={layerVisibility.shelters}
-                onChange={() => toggleLayer("shelters")}
-                className="accent-isie-primary"
-              />
-            </label>
+            <p className="px-1.5 py-1 text-[10px] leading-relaxed text-amber-400">
+              Hazard, route, and shelter overlays are unavailable until a source provider is connected.
+            </p>
           </div>
         </div>
       )}

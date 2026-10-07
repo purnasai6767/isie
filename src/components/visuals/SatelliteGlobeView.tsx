@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Map, { Marker, NavigationControl, Popup, ScaleControl, type MapRef } from "react-map-gl/mapbox";
 import type { ErrorEvent, StyleSpecification } from "mapbox-gl";
 import {
+  Search,
   Crosshair,
   Globe2,
   MapPin,
@@ -43,8 +44,25 @@ const regionSurfaceStyle: StyleSpecification = {
       attribution: "Imagery © Esri, Maxar, Earthstar Geographics, and the GIS User Community",
       maxzoom: 19,
     },
+    "esri-place-labels": {
+      type: "raster",
+      tiles: [
+        "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}",
+      ],
+      tileSize: 256,
+      attribution: "Boundaries and place names © Esri",
+      maxzoom: 19,
+    },
   },
-  layers: [{ id: "esri-imagery", type: "raster", source: "esri-imagery" }],
+  layers: [
+    { id: "esri-imagery", type: "raster", source: "esri-imagery" },
+    {
+      id: "esri-place-labels",
+      type: "raster",
+      source: "esri-place-labels",
+      paint: { "raster-opacity": 0.95 },
+    },
+  ],
 };
 
 const regionStreetStyle: StyleSpecification = {
@@ -71,7 +89,7 @@ function getMapStyle(surface: Surface, hasMapboxToken: boolean): string | StyleS
   }
   if (surface === "TACTICAL") return "mapbox://styles/mapbox/dark-v11";
   if (surface === "NIGHT") return "mapbox://styles/mapbox/navigation-night-v1";
-  return "mapbox://styles/mapbox/satellite-v9";
+  return "mapbox://styles/mapbox/satellite-streets-v12";
 }
 
 function severityColor(incident: IntelligenceEvent): string {
@@ -82,20 +100,23 @@ function severityColor(incident: IntelligenceEvent): string {
 
 interface SatelliteGlobeViewProps {
   incidents: IntelligenceEvent[];
-  selectedRegion: string;
-  selectedIncidentId: string | null;
-  onSelectIncident: (incident: IntelligenceEvent | null) => void;
+  selectedRegion?: string;
+  selectedIncidentId?: string | null;
+  onSelectIncident?: (incident: IntelligenceEvent | null) => void;
 }
 
 export default function SatelliteGlobeView({
   incidents,
-  selectedRegion,
-  selectedIncidentId,
-  onSelectIncident,
+  selectedRegion = "ALL",
+  selectedIncidentId = null,
+  onSelectIncident = () => {},
 }: SatelliteGlobeViewProps) {
   const mapRef = useRef<MapRef>(null);
   const [surface, setSurface] = useState<Surface>("SATELLITE");
   const [mapError, setMapError] = useState("");
+  const [placeQuery, setPlaceQuery] = useState("");
+  const [placeError, setPlaceError] = useState("");
+  const [isSearching, setIsSearching] = useState(false);
   const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
   const mapStyle = useMemo(() => getMapStyle(surface, Boolean(token)), [surface, token]);
   const selectedIncident = incidents.find((incident) => incident.id === selectedIncidentId);
@@ -162,6 +183,66 @@ export default function SatelliteGlobeView({
     const message = event.error?.message ?? "The map provider could not load imagery.";
     setMapError(message);
   }, []);
+
+  const searchPlace = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const query = placeQuery.trim();
+    if (!query) return;
+
+    setIsSearching(true);
+    setPlaceError("");
+    try {
+      let longitude: number | undefined;
+      let latitude: number | undefined;
+      let placeName = query;
+
+      if (token) {
+        const params = new URLSearchParams({ q: query, limit: "1", access_token: token });
+        const response = await fetch(`https://api.mapbox.com/search/geocode/v6/forward?${params}`);
+        if (!response.ok) throw new Error(`Mapbox search returned HTTP ${response.status}.`);
+        const result = await response.json();
+        const feature = result.features?.[0];
+        [longitude, latitude] = feature?.geometry?.coordinates ?? [];
+        placeName = feature?.properties?.full_address ?? feature?.properties?.name ?? query;
+      } else {
+        const params = new URLSearchParams({ q: query, format: "jsonv2", limit: "1" });
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+          headers: { Accept: "application/json" },
+        });
+        if (!response.ok) throw new Error(`OpenStreetMap search returned HTTP ${response.status}.`);
+        const results: { lon?: string; lat?: string; display_name?: string }[] = await response.json();
+        longitude = Number(results[0]?.lon);
+        latitude = Number(results[0]?.lat);
+        placeName = results[0]?.display_name ?? query;
+      }
+
+      if (
+        typeof longitude !== "number" ||
+        typeof latitude !== "number" ||
+        !Number.isFinite(longitude) ||
+        !Number.isFinite(latitude) ||
+        longitude < -180 ||
+        longitude > 180 ||
+        latitude < -90 ||
+        latitude > 90
+      ) {
+        throw new Error("No mapped city, state, or place matched that search.");
+      }
+
+      mapRef.current?.flyTo({
+        center: [longitude, latitude],
+        zoom: 8,
+        pitch: 45,
+        duration: 1400,
+        essential: true,
+      });
+      setPlaceQuery(placeName);
+    } catch (error) {
+      setPlaceError(error instanceof Error ? error.message : "Place search failed.");
+    } finally {
+      setIsSearching(false);
+    }
+  };
 
   const surfaceOptions: { id: Surface; label: string; icon: typeof Satellite }[] = [
     { id: "SATELLITE", label: "SATELLITE", icon: Satellite },
@@ -259,6 +340,35 @@ export default function SatelliteGlobeView({
           </button>
         ))}
       </div>
+
+      <form
+        onSubmit={searchPlace}
+        className="absolute left-3 top-[3.25rem] z-10 flex w-[min(340px,calc(100%-1.5rem))] gap-1 rounded border border-white/10 bg-[#080e17]/95 p-1.5 shadow-lg backdrop-blur"
+      >
+        <label htmlFor="global-place-search" className="sr-only">
+          Search any city, state, or place worldwide
+        </label>
+        <input
+          id="global-place-search"
+          value={placeQuery}
+          onChange={(event) => setPlaceQuery(event.target.value)}
+          placeholder="Search any city, state, or place worldwide"
+          className="min-w-0 flex-1 bg-transparent px-2 py-1.5 font-mono text-[10px] text-slate-100 outline-none placeholder:text-slate-600"
+        />
+        <button
+          type="submit"
+          disabled={isSearching || !placeQuery.trim()}
+          className="inline-flex shrink-0 items-center gap-1 rounded border border-cyan-300/20 bg-cyan-300/10 px-2 py-1 font-mono text-[9px] text-cyan-200 hover:bg-cyan-300/20 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Search className="h-3 w-3" />
+          {isSearching ? "SEARCHING" : "FIND"}
+        </button>
+      </form>
+      {placeError && (
+        <p role="status" className="absolute left-3 top-[6.2rem] z-10 max-w-[min(340px,calc(100%-1.5rem))] rounded border border-amber-300/25 bg-[#080e17]/95 px-2 py-1.5 font-mono text-[9px] text-amber-200">
+          {placeError}
+        </p>
+      )}
 
       <div className="pointer-events-none absolute right-3 top-3 z-10 flex max-w-[min(280px,calc(100%-1.5rem))] items-center gap-2 rounded border border-white/10 bg-[#080e17]/90 px-3 py-2 backdrop-blur">
         <Globe2 className="h-3.5 w-3.5 shrink-0 text-cyan-300" />

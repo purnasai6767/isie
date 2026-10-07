@@ -13,13 +13,14 @@ export interface ITimelineService {
 }
 
 export class TimelineService implements ITimelineService {
-  async getTimelineEvents(zoneId?: string, isDemoMode: boolean = true): Promise<TimelineEvent[]> {
-    if (isDemoMode || !auth.currentUser) {
+  async getTimelineEvents(zoneId?: string, isDemoMode: boolean = false): Promise<TimelineEvent[]> {
+    if (isDemoMode) {
       if (!zoneId || zoneId === "ALL") {
         return [...DEMO_TIMELINE_EVENTS];
       }
       return DEMO_TIMELINE_EVENTS.filter((e) => e.relatedZoneId === zoneId);
     }
+    if (!auth.currentUser) return [];
 
     try {
       const col = collection(db, "timelines");

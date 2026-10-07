@@ -5,7 +5,7 @@
 
 import { NotificationItem } from "../types/isie";
 import { DEMO_NOTIFICATIONS } from "@/data/demo/notifications";
-import { collection, doc, getDocs, updateDoc, query } from "firebase/firestore";
+import { collection, doc, getDocs, updateDoc, query, deleteDoc } from "firebase/firestore";
 import { db, auth, handleFirestoreError, OperationType } from "@/lib/firebase/client";
 
 export interface INotificationService {
@@ -17,10 +17,11 @@ export interface INotificationService {
 export class NotificationService implements INotificationService {
   private demoNotifications: NotificationItem[] = [...DEMO_NOTIFICATIONS];
 
-  async getNotifications(isDemoMode: boolean = true): Promise<NotificationItem[]> {
-    if (isDemoMode || !auth.currentUser) {
+  async getNotifications(isDemoMode: boolean = false): Promise<NotificationItem[]> {
+    if (isDemoMode) {
       return [...this.demoNotifications];
     }
+    if (!auth.currentUser) return [];
 
     try {
       const col = collection(db, "notifications");
@@ -38,13 +39,14 @@ export class NotificationService implements INotificationService {
     }
   }
 
-  async markAsRead(notificationId: string, isDemoMode: boolean = true): Promise<boolean> {
+  async markAsRead(notificationId: string, isDemoMode: boolean = false): Promise<boolean> {
     if (isDemoMode) {
       this.demoNotifications = this.demoNotifications.map((n) =>
         n.id === notificationId ? { ...n, read: true } : n
       );
       return true;
     }
+    if (!auth.currentUser) return false;
 
     try {
       const docRef = doc(db, "notifications", notificationId);
@@ -56,12 +58,21 @@ export class NotificationService implements INotificationService {
     }
   }
 
-  async clearAll(isDemoMode: boolean = true): Promise<boolean> {
+  async clearAll(isDemoMode: boolean = false): Promise<boolean> {
     if (isDemoMode) {
       this.demoNotifications = [];
       return true;
     }
-    return true;
+    if (!auth.currentUser) return false;
+
+    try {
+      const snapshot = await getDocs(query(collection(db, "notifications")));
+      await Promise.all(snapshot.docs.map((notification) => deleteDoc(notification.ref)));
+      return true;
+    } catch (err) {
+      handleFirestoreError(err, OperationType.DELETE, "notifications");
+      return false;
+    }
   }
 }
 

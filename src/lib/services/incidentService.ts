@@ -18,7 +18,7 @@ import {
   onSnapshot,
 } from "firebase/firestore";
 import { db, auth, handleFirestoreError, OperationType } from "@/lib/firebase/client";
-import { IntelligenceEvent, Alert, HazardRedZone, TimelineEvent, NotificationItem } from "@/lib/types/isie";
+import { IntelligenceEvent, Alert, TimelineEvent } from "@/lib/types/isie";
 import { DEMO_INCIDENTS } from "@/data/demo/incidents";
 import { AuthUser } from "@/lib/auth/AuthContext";
 import { hasPermission } from "@/lib/auth/roles";
@@ -52,16 +52,64 @@ export interface CreateIncidentInput {
   escalationRisk?: IntelligenceEvent["escalationRisk"];
 }
 
+function toIntelligenceEvent(id: string, data: Record<string, unknown>): IntelligenceEvent | null {
+  const requiredStrings = [
+    "eventCode",
+    "title",
+    "category",
+    "severity",
+    "status",
+    "timestamp",
+    "locationName",
+    "region",
+    "verificationStatus",
+    "summary",
+    "escalationRisk",
+  ];
+  const requiredNumbers = [
+    "confidenceScore",
+    "sourceCount",
+    "affectedHabitationsCount",
+    "populationAtRisk",
+  ];
+  const coordinates = data.coordinates as { lat?: unknown; lng?: unknown } | undefined;
+  const hasCompleteCoordinates =
+    typeof coordinates?.lat === "number" &&
+    Number.isFinite(coordinates.lat) &&
+    coordinates.lat >= -90 &&
+    coordinates.lat <= 90 &&
+    typeof coordinates.lng === "number" &&
+    Number.isFinite(coordinates.lng) &&
+    coordinates.lng >= -180 &&
+    coordinates.lng <= 180;
+
+  if (
+    !requiredStrings.every((key) => typeof data[key] === "string" && data[key]) ||
+    !requiredNumbers.every((key) => typeof data[key] === "number" && Number.isFinite(data[key])) ||
+    !hasCompleteCoordinates ||
+    !Array.isArray(data.sourceAgencies) ||
+    !data.sourceAgencies.every((agency) => typeof agency === "string") ||
+    !Array.isArray(data.evidenceIds) ||
+    !data.evidenceIds.every((evidenceId) => typeof evidenceId === "string")
+  ) {
+    console.warn(`Incident ${id} is missing required fields and was excluded from workspace views.`);
+    return null;
+  }
+
+  return { id, ...(data as Omit<IntelligenceEvent, "id">) };
+}
+
 export class IncidentService {
   /**
    * Fetch active incidents.
    * If isDemoMode is true, strictly returns static synthetic incidents.
-   * If isDemoMode is false, queries real operational Firestore incidents.
+   * If isDemoMode is false, queries authenticated workspace Firestore records.
    */
-  async getIncidents(isDemoMode: boolean = true): Promise<IntelligenceEvent[]> {
-    if (isDemoMode || !auth.currentUser) {
+  async getIncidents(isDemoMode: boolean = false): Promise<IntelligenceEvent[]> {
+    if (isDemoMode) {
       return [...DEMO_INCIDENTS];
     }
+    if (!auth.currentUser) return [];
 
     try {
       const incidentsCol = collection(db, "incidents");
@@ -72,54 +120,29 @@ export class IncidentService {
         return [];
       }
 
-      const incidents: IntelligenceEvent[] = snapshot.docs.map((docSnap) => {
-        const data = docSnap.data();
-        return {
-          id: docSnap.id,
-          eventCode: data.eventCode || docSnap.id,
-          title: data.title || "Untitled Incident",
-          category: data.category || "HYDROMETEOROLOGICAL",
-          severity: data.severity || "MEDIUM",
-          status: data.status || "ACTIVE",
-          timestamp: data.timestamp || new Date().toISOString(),
-          locationName: data.locationName || "Unknown Sector",
-          region: data.region || "Operational Sector",
-          coordinates: data.coordinates || { lat: 22.5, lng: 78.9 },
-          confidenceScore: data.confidenceScore ?? 0.9,
-          sourceCount: data.sourceCount ?? (data.sourceAgencies?.length || 1),
-          sourceAgencies: data.sourceAgencies || ["Operational Telemetry"],
-          verificationStatus: data.verificationStatus || "VERIFIED_BY_AUTHORITY",
-          summary: data.summary || "",
-          affectedHabitationsCount: data.affectedHabitationsCount ?? 0,
-          populationAtRisk: data.populationAtRisk ?? 0,
-          hazardZoneLevel: data.hazardZoneLevel || "RED_ZONE",
-          carryingCapacityStatus: data.carryingCapacityStatus || "WARNING",
-          relocationScore: data.relocationScore ?? 50,
-          escalationRisk: data.escalationRisk || "ELEVATED",
-          evidenceIds: data.evidenceIds || [],
-        };
-      });
-
-      return incidents;
+      return snapshot.docs
+        .map((docSnap) => toIntelligenceEvent(docSnap.id, docSnap.data()))
+        .filter((incident): incident is IntelligenceEvent => incident !== null);
     } catch (err) {
       handleFirestoreError(err, OperationType.LIST, "incidents");
-      return [...DEMO_INCIDENTS];
+      return [];
     }
   }
 
   /**
    * Fetch single incident by ID
    */
-  async getIncidentById(id: string, isDemoMode: boolean = true): Promise<IntelligenceEvent | null> {
-    if (isDemoMode || !auth.currentUser) {
+  async getIncidentById(id: string, isDemoMode: boolean = false): Promise<IntelligenceEvent | null> {
+    if (isDemoMode) {
       return DEMO_INCIDENTS.find((i) => i.id === id) || null;
     }
+    if (!auth.currentUser) return null;
 
     try {
       const docRef = doc(db, "incidents", id);
       const docSnap = await getDoc(docRef);
       if (!docSnap.exists()) return null;
-      return { id: docSnap.id, ...(docSnap.data() as Omit<IntelligenceEvent, "id">) };
+      return toIntelligenceEvent(docSnap.id, docSnap.data());
     } catch (err) {
       handleFirestoreError(err, OperationType.GET, `incidents/${id}`);
       return null;
@@ -137,9 +160,12 @@ export class IncidentService {
     const callback = typeof arg1 === "function" ? arg1 : (typeof arg2 === "function" ? arg2 : () => {});
     const isDemoMode = typeof arg1 === "boolean" ? arg1 : (typeof arg2 === "boolean" ? arg2 : false);
 
-    // If demo mode or unauthenticated, deliver demo incidents directly without attaching Firestore listener
-    if (isDemoMode || !auth.currentUser) {
+    if (isDemoMode) {
       callback([...DEMO_INCIDENTS]);
+      return () => {};
+    }
+    if (!auth.currentUser) {
+      callback([]);
       return () => {};
     }
 
@@ -148,26 +174,21 @@ export class IncidentService {
       const unsubscribe = onSnapshot(
         incidentsCol,
         (snapshot) => {
-          const firestoreList: IntelligenceEvent[] = snapshot.docs.map((docSnap) => ({
-            id: docSnap.id,
-            ...(docSnap.data() as Omit<IntelligenceEvent, "id">),
-          }));
-          if (firestoreList.length > 0) {
-            callback(firestoreList);
-          } else {
-            callback([]);
-          }
+          const firestoreList = snapshot.docs
+            .map((docSnap) => toIntelligenceEvent(docSnap.id, docSnap.data()))
+            .filter((incident): incident is IntelligenceEvent => incident !== null);
+          callback(firestoreList);
         },
         (error) => {
           handleFirestoreError(error, OperationType.LIST, "incidents");
           onError?.(error);
-          callback([...DEMO_INCIDENTS]);
+          callback([]);
         }
       );
       return unsubscribe;
     } catch (err: any) {
       handleFirestoreError(err, OperationType.LIST, "incidents");
-      callback([...DEMO_INCIDENTS]);
+      callback([]);
       return () => {};
     }
   }
@@ -175,7 +196,7 @@ export class IncidentService {
   subscribeToIncidents = this.subscribeIncidents;
 
   /**
-   * Create an operational incident in Firestore with atomic multi-agency cascades
+   * Create an unverified, user-submitted incident report in Firestore.
    */
   async createIncident(
     input: CreateIncidentInput,
@@ -203,13 +224,28 @@ export class IncidentService {
     if (isNaN(lng) || lng < -180 || lng > 180) {
       return { success: false, error: "Validation Error: Longitude must be a valid number between -180 and 180 degrees." };
     }
+    if (!Number.isInteger(input.populationAtRisk) || input.populationAtRisk < 0) {
+      return { success: false, error: "Validation Error: Population at risk must be a non-negative whole number." };
+    }
+    if (
+      input.affectedAreaKm2 !== undefined &&
+      (!Number.isFinite(input.affectedAreaKm2) || input.affectedAreaKm2 < 0)
+    ) {
+      return { success: false, error: "Validation Error: Affected area must be a non-negative number." };
+    }
+    if (
+      input.criticalFacilitiesAffected !== undefined &&
+      (!Number.isInteger(input.criticalFacilitiesAffected) || input.criticalFacilitiesAffected < 0)
+    ) {
+      return { success: false, error: "Validation Error: Critical facilities must be a non-negative whole number." };
+    }
 
     if (!input.locationName || input.locationName.trim().length < 2) {
       return { success: false, error: "Validation Error: Location name is required." };
     }
 
     if (!input.source || input.source.trim().length < 2) {
-      return { success: false, error: "Validation Error: Authoritative intelligence source is required." };
+      return { success: false, error: "Validation Error: A source note or reference is required." };
     }
 
     try {
@@ -218,9 +254,9 @@ export class IncidentService {
       const incidentId = `INC-${new Date().getFullYear()}-${codeSuffix}`;
       const eventCode = `EVT-${(input.category || "HYD").slice(0, 3)}-${codeSuffix}`;
 
-      const stateName = input.affectedState?.trim() || "Uttarakhand";
-      const districtName = input.affectedDistrict?.trim() || "Chamoli";
-      const regionName = input.region?.trim() || `${districtName} Sector, ${stateName}`;
+      const stateName = input.affectedState?.trim();
+      const districtName = input.affectedDistrict?.trim();
+      const regionName = input.region?.trim() || input.locationName.trim();
 
       const incidentData: Omit<IntelligenceEvent, "id"> & {
         createdBy: string;
@@ -231,13 +267,13 @@ export class IncidentService {
       } = {
         eventCode,
         title: input.title.trim(),
-        incidentType: input.incidentType || "Flood",
-        category: input.category || "NATURAL_HAZARD",
+        incidentType: input.incidentType,
+        category: input.category,
         severity: input.severity,
-        status: input.status || "ACTIVE",
-        timestamp: `${new Date().toLocaleDateString("en-GB")} ${new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })} UTC`,
+        status: "REPORTED",
+        timestamp: now,
         locationName: input.locationName.trim(),
-        country: input.country?.trim() || "India",
+        country: input.country?.trim(),
         state: stateName,
         district: districtName,
         region: regionName,
@@ -246,24 +282,24 @@ export class IncidentService {
           lng,
           elevationMeters: input.coordinates.elevationMeters,
         },
-        confidence: input.confidence || "HIGH",
-        confidenceScore: input.confidenceScore ?? (input.confidence === "VERY_HIGH" ? 0.98 : input.confidence === "HIGH" ? 0.92 : input.confidence === "MODERATE" ? 0.75 : 0.6),
+        confidence: input.confidence,
+        confidenceScore: input.confidenceScore ?? 0,
         source: input.source.trim(),
-        sourceCount: (input.sourceAgencies?.length || 1),
-        sourceAgencies: input.sourceAgencies?.length ? input.sourceAgencies : [input.source.trim(), creator.organization || "Command Center"],
-        verificationStatus: input.status === "VERIFIED" || input.status === "ACTIVE" ? "VERIFIED_BY_AUTHORITY" : "AWAITING_VERIFICATION",
-        detectionTime: input.detectionTime || now,
+        sourceCount: input.sourceAgencies?.length ?? 0,
+        sourceAgencies: input.sourceAgencies ?? [],
+        verificationStatus: "AWAITING_VERIFICATION",
+        detectionTime: input.detectionTime,
         summary: input.summary ? input.summary.trim() : `Operational situation registered for ${input.locationName}.`,
         additionalNotes: input.additionalNotes?.trim() || "",
-        affectedHabitationsCount: Math.max(1, Math.round(Number(input.populationAtRisk || 0) / 3000)),
-        populationAtRisk: Number(input.populationAtRisk) || 0,
-        affectedAreaKm2: Number(input.affectedAreaKm2) || 0,
+        affectedHabitationsCount: 0,
+        populationAtRisk: Number(input.populationAtRisk),
+        affectedAreaKm2: input.affectedAreaKm2,
         infrastructureImpact: input.infrastructureImpact?.trim() || "",
-        criticalFacilitiesAffected: Number(input.criticalFacilitiesAffected) || 0,
-        hazardZoneLevel: input.hazardZoneLevel || (input.severity === "CRITICAL" ? "RED_ZONE" : "WARNING_ZONE"),
-        carryingCapacityStatus: input.carryingCapacityStatus || (input.severity === "CRITICAL" ? "CRITICAL" : "WARNING"),
-        relocationScore: input.relocationScore ?? (input.severity === "CRITICAL" ? 90 : input.severity === "HIGH" ? 75 : 50),
-        escalationRisk: input.escalationRisk || (input.severity === "CRITICAL" ? "EXTREME" : "ELEVATED"),
+        criticalFacilitiesAffected: input.criticalFacilitiesAffected,
+        hazardZoneLevel: input.hazardZoneLevel,
+        carryingCapacityStatus: input.carryingCapacityStatus,
+        relocationScore: input.relocationScore,
+        escalationRisk: input.escalationRisk || "STABLE",
         evidenceIds: [],
         createdBy: creator.id,
         createdByName: creator.name,
@@ -275,7 +311,7 @@ export class IncidentService {
             timestamp: now,
             action: "INITIAL_REGISTRATION",
             performedBy: `${creator.name} (${creator.role})`,
-            details: `Operational incident initialized. Severity: ${input.severity}, Status: ${input.status || "ACTIVE"}`,
+            details: "User-submitted report awaiting authoritative verification.",
           },
         ],
       };
@@ -283,77 +319,25 @@ export class IncidentService {
       // 1. Store core incident in Firestore (ONE Canonical Record)
       await setDoc(doc(db, "incidents", incidentId), incidentData);
 
-      // 2. Cascade: Create linked alert if MODERATE, HIGH, or CRITICAL
-      if (input.severity === "CRITICAL" || input.severity === "HIGH" || input.severity === "MODERATE" || input.severity === "MEDIUM") {
-        const alertId = `ALT-${incidentId.replace("INC-", "")}`;
-        const alertData: Alert = {
-          id: alertId,
-          alertCode: `ALR-${codeSuffix}`,
-          title: `OPERATIONAL ALERT: ${input.title}`,
-          severity: input.severity,
-          alertType: input.severity === "CRITICAL" ? "HAZARD_SURGE" : "EARLY_WARNING",
-          location: input.locationName,
-          timestamp: "Just now",
-          sourceAgency: creator.organization || "Tactical Command",
-          confidenceScore: incidentData.confidenceScore,
-          status: "ACTIVE",
-          relatedEventId: incidentId,
-          recommendedAction: `Deploy first responders to ${input.locationName}. Enact evacuation tier for vulnerable habitations.`,
-        };
-        await setDoc(doc(db, "alerts", alertId), alertData);
-      }
-
-      // 3. Cascade: Create baseline timeline anchor referencing canonical incidentId
+      // Keep report history without generating unverified alerts, zones, or dispatch advice.
       const timelineId = `TL-${incidentId.replace("INC-", "")}`;
       const timelineData: TimelineEvent = {
         id: timelineId,
-        timestamp: `${new Date().toLocaleDateString("en-GB")} (T-0 / CURRENT)`,
+        timestamp: now,
         title: input.title,
         category: input.category,
         severity: input.severity,
-        phase: "CURRENT_OBSERVATION",
-        summary: `Incident logged and verified. Classification: ${input.incidentType || input.category}. Population at risk: ${(Number(input.populationAtRisk) || 0).toLocaleString()}. Source: ${input.source}.`,
+        phase: "EARLY_TRIGGER",
+        summary: `User-submitted report. Severity and impact have not been independently verified. Source supplied: ${input.source}.`,
         coordinates: incidentData.coordinates,
         relatedZoneId: incidentId,
       };
       await setDoc(doc(db, "timelines", timelineId), timelineData);
 
-      // 4. Cascade: Create Hazard Red Zone record for Risk Intelligence
-      const zoneData: HazardRedZone = {
-        id: incidentId,
-        zoneCode: incidentId,
-        name: `${input.title} Impact Zone`,
-        classification: incidentData.hazardZoneLevel || "RED_ZONE",
-        hazardType: (input.incidentType?.toUpperCase().includes("CYCLONE") ? "CYCLONE" : input.incidentType?.toUpperCase().includes("LANDSLIDE") ? "LANDSLIDE" : "FLOOD") as any,
-        district: districtName,
-        state: stateName,
-        coordinates: incidentData.coordinates,
-        populationExposed: incidentData.populationAtRisk,
-        carryingCapacityStatus: incidentData.carryingCapacityStatus || "CRITICAL",
-        relocationPriorityScore: incidentData.relocationScore || 85,
-        lastAssessmentTimestamp: now,
-        sourceAgencies: incidentData.sourceAgencies,
-      };
-      await setDoc(doc(db, "hazard_zones", incidentId), zoneData);
-
-      // 5. Cascade: Create broadcast notification
-      const notifId = `NOTIF-${codeSuffix}`;
-      const notifData: NotificationItem = {
-        id: notifId,
-        title: `OPERATIONAL DISPATCH: ${input.title}`,
-        message: `${input.locationName} (${districtName}) flagged as ${input.severity} severity by ${creator.name}.`,
-        category: input.severity === "CRITICAL" ? "CRITICAL_ALERT" : "INTEL_UPDATE",
-        timestamp: "Just now",
-        read: false,
-        priority: input.severity === "CRITICAL" ? "HIGH" : "NORMAL",
-        actionUrl: "/incidents",
-      };
-      await setDoc(doc(db, "notifications", notifId), notifData);
-
       return { success: true, incidentId };
     } catch (err: any) {
       handleFirestoreError(err, OperationType.CREATE, "incidents");
-      return { success: false, error: err?.message || "Failed to persist operational incident to Firestore." };
+      return { success: false, error: err?.message || "Failed to save the workspace report to Firestore." };
     }
   }
 
@@ -361,6 +345,14 @@ export class IncidentService {
    * Update incident fields in Firestore with audit tracking
    */
   async updateIncident(id: string, updates: Partial<IntelligenceEvent>, actor?: AuthUser): Promise<boolean> {
+    if (
+      updates.verificationStatus !== undefined ||
+      updates.status === "VERIFIED"
+    ) {
+      console.warn("Incident verification must be performed through an authorized review workflow.");
+      return false;
+    }
+
     try {
       const docRef = doc(db, "incidents", id);
       const now = new Date().toISOString();
@@ -396,6 +388,9 @@ export class IncidentService {
     notes: string,
     actor: AuthUser
   ): Promise<{ success: boolean; error?: string }> {
+    if (newStatus === "VERIFIED") {
+      return { success: false, error: "Incident verification requires an authorized review workflow." };
+    }
     try {
       const docRef = doc(db, "incidents", id);
       const snap = await getDoc(docRef);

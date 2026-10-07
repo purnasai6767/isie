@@ -68,12 +68,12 @@ export const LeftIntelPanel: React.FC<LeftIntelPanelProps> = ({
               Critical Events
             </span>
             <span className="text-[10px] font-mono text-isie-text-dim truncate">
-              AUTOMATED TRIAGE
+              INCIDENT REPORTS
             </span>
           </div>
         </div>
         <TacticalBadge variant="orange" size="sm" className="shrink-0">
-          {events.length} ACTIVE
+          {events.length} {isDemoMode ? "SAMPLE" : "WORKSPACE"}
         </TacticalBadge>
       </div>
 
@@ -113,7 +113,7 @@ export const LeftIntelPanel: React.FC<LeftIntelPanelProps> = ({
             description={
               isDemoMode
                 ? "No incidents match the selected severity filter."
-                : "No operational situations are currently logged in your sector."
+                : "No incident reports are currently available in this workspace."
             }
             statusText="SYSTEM IDLE"
           />
@@ -200,7 +200,7 @@ export const LeftIntelPanel: React.FC<LeftIntelPanelProps> = ({
       <div className="px-4 py-2.5 border-t border-white/10 bg-isie-panel-light/20 flex items-center justify-between text-[11px] font-mono text-isie-text-dim shrink-0">
         <span className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-          <span>TRIAGE STREAM LIVE</span>
+          <span>{isDemoMode ? "DEMO EXERCISE STREAM" : "NO LIVE PROVIDER FEED"}</span>
         </span>
         <Link href="/incidents" className="text-isie-primary hover:underline font-semibold flex items-center gap-1">
           <span>ALL INCIDENTS</span>
