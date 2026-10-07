@@ -19,6 +19,7 @@ import type { EonetEvent } from "@/lib/types/eonet";
 import type { UsgsEarthquake } from "@/lib/types/usgs";
 
 type Surface = "SATELLITE" | "TACTICAL" | "NIGHT";
+type ImageryProvider = "mapbox" | "esri" | "carto";
 
 type RegionTarget = {
   longitude: number;
@@ -114,10 +115,39 @@ const regionStreetStyle: StyleSpecification = {
   layers: [{ id: "esri-streets", type: "raster", source: "esri-streets" }],
 };
 
+const cartoDarkStyle: StyleSpecification = {
+  version: 8,
+  sources: {
+    "openstreetmap-fallback": {
+      type: "raster",
+      tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+      tileSize: 256,
+      attribution: "© OpenStreetMap contributors",
+      maxzoom: 19,
+    },
+    "carto-dark": {
+      type: "raster",
+      tiles: [
+        "https://a.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+        "https://b.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+        "https://c.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png",
+      ],
+      tileSize: 256,
+      attribution: "© CARTO © OpenStreetMap contributors",
+      maxzoom: 20,
+    },
+  },
+  layers: [
+    { id: "openstreetmap-fallback", type: "raster", source: "openstreetmap-fallback" },
+    { id: "carto-dark", type: "raster", source: "carto-dark" },
+  ],
+};
+
 const STYLES_WITH_TERRAIN = new Set<Surface>(["SATELLITE", "TACTICAL"]);
 
-function getMapStyle(surface: Surface, hasMapboxToken: boolean): string | StyleSpecification {
-  if (!hasMapboxToken) {
+function getMapStyle(surface: Surface, provider: ImageryProvider): string | StyleSpecification {
+  if (provider === "carto") return cartoDarkStyle;
+  if (provider === "esri") {
     return surface === "SATELLITE" ? regionSurfaceStyle : regionStreetStyle;
   }
   if (surface === "TACTICAL") return "mapbox://styles/mapbox/dark-v11";
@@ -159,13 +189,14 @@ export default function SatelliteGlobeView({
   isDemoMode = false,
 }: SatelliteGlobeViewProps) {
   const mapRef = useRef<MapRef>(null);
+  const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
   const [surface, setSurface] = useState<Surface>("SATELLITE");
   const [mapError, setMapError] = useState("");
+  const [provider, setProvider] = useState<ImageryProvider>(token ? "mapbox" : "esri");
   const [placeQuery, setPlaceQuery] = useState("");
   const [placeError, setPlaceError] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
-  const mapStyle = useMemo(() => getMapStyle(surface, Boolean(token)), [surface, token]);
+  const mapStyle = useMemo(() => getMapStyle(surface, provider), [surface, provider]);
   const selectedIncident = incidents.find((incident) => incident.id === selectedIncidentId);
   const selectedEonetEvent = eonetEvents.find((event) => event.id === selectedEonetId);
   const selectedEarthquake = usgsEarthquakes.find((event) => event.id === selectedEarthquakeId);
@@ -176,7 +207,7 @@ export default function SatelliteGlobeView({
     if (!map) return;
 
     const enableTerrain = () => {
-      if (!token || !STYLES_WITH_TERRAIN.has(surface) || !map.isStyleLoaded()) return;
+      if (provider !== "mapbox" || !token || !STYLES_WITH_TERRAIN.has(surface) || !map.isStyleLoaded()) return;
       if (!map.getSource("isie-terrain-dem")) {
         map.addSource("isie-terrain-dem", {
           type: "raster-dem",
@@ -193,7 +224,7 @@ export default function SatelliteGlobeView({
     return () => {
       map.off("style.load", enableTerrain);
     };
-  }, [mapStyle, surface, token]);
+  }, [mapStyle, provider, surface, token]);
 
   useEffect(() => {
     mapRef.current?.flyTo({
@@ -244,10 +275,26 @@ export default function SatelliteGlobeView({
     onSelectEonetEvent(null);
   }, [onSelectEonetEvent, onSelectIncident, target]);
 
-  const handleMapError = useCallback((event: ErrorEvent) => {
-    const message = event.error?.message ?? "The map provider could not load imagery.";
-    setMapError(message);
-  }, []);
+  const handleMapError = useCallback((_event: ErrorEvent) => {
+    if (provider === "mapbox") {
+      setProvider("esri");
+      setMapError("");
+      return;
+    }
+    if (provider === "esri") {
+      setSurface("TACTICAL");
+      setProvider("carto");
+      setMapError("");
+      return;
+    }
+    setMapError("Map tiles are unavailable from Mapbox, Esri, and CARTO. Check network access, then retry.");
+  }, [provider]);
+
+  const retryImagery = () => {
+    setMapError("");
+    setSurface("SATELLITE");
+    setProvider(token ? "mapbox" : "esri");
+  };
 
   const searchPlace = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -339,7 +386,7 @@ export default function SatelliteGlobeView({
         ref={mapRef}
         mapboxAccessToken={token}
         mapStyle={mapStyle}
-        projection={token ? { name: "globe" } : { name: "mercator" }}
+        projection={provider === "mapbox" ? { name: "globe" } : { name: "mercator" }}
         initialViewState={{
           longitude: target.longitude,
           latitude: target.latitude,
@@ -569,10 +616,18 @@ export default function SatelliteGlobeView({
         <Globe2 className="h-3.5 w-3.5 shrink-0 text-cyan-300" />
         <div className="min-w-0">
           <p className="truncate font-mono text-[9px] font-semibold uppercase tracking-[0.13em] text-slate-100">
-            {token ? "Mapbox satellite imagery" : "Esri satellite imagery"}
+          {provider === "mapbox"
+            ? surface === "SATELLITE" ? "Mapbox satellite imagery" : "Mapbox map style"
+            : provider === "esri"
+              ? surface === "SATELLITE" ? "Esri satellite imagery" : "Esri street map"
+              : "CARTO dark map · OpenStreetMap"}
           </p>
           <p className="truncate font-mono text-[8px] text-slate-500">
-            {token && STYLES_WITH_TERRAIN.has(surface) ? "3D terrain enabled · published imagery" : "Interactive globe · published imagery"}
+          {provider === "carto"
+            ? "Satellite imagery unavailable · fallback map"
+            : provider === "mapbox" && STYLES_WITH_TERRAIN.has(surface)
+              ? "3D terrain enabled · published imagery"
+              : "Interactive map · published imagery"}
           </p>
         </div>
         <Sun className="h-3 w-3 shrink-0 text-amber-300" />
@@ -590,7 +645,10 @@ export default function SatelliteGlobeView({
       {mapError && (
         <div role="status" className="absolute bottom-12 left-1/2 z-20 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-2 rounded border border-amber-400/30 bg-[#111318]/95 px-3 py-2 font-mono text-[9px] text-amber-200 shadow-xl">
           <MapPin className="h-3.5 w-3.5 shrink-0" />
-          <span>Map imagery could not load. Check network access or map provider settings.</span>
+          <span>{mapError}</span>
+          <button type="button" onClick={retryImagery} className="shrink-0 rounded border border-amber-200/30 px-2 py-1 hover:bg-amber-200/10">
+            RETRY
+          </button>
         </div>
       )}
 

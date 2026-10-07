@@ -20,9 +20,12 @@ provider setup prompt rather than claiming a live feed.
 
 The `/global` view uses a real, interactive globe and published satellite-map
 tiles. It uses Mapbox satellite imagery and terrain when the token is
-configured, and Esri satellite tiles as a no-token imagery fallback. Satellite
-tiles are not a live sensor feed and may not represent current ground
-conditions.
+configured, and Esri satellite tiles when no token is configured. If a provider
+fails, the map tries the next available provider and can fall back to a
+CARTO/OpenStreetMap basemap; the active provider is labeled in the map. This
+fallback is a street map, not satellite imagery. Satellite tiles are not a
+live sensor feed and may not represent current ground conditions. If all tile
+providers are unreachable, the map reports that rather than inventing imagery.
 
 The `/global` and `/sources` views retrieve NASA's public EONET v3 open-event
 catalog through `/api/nasa-eonet`, cached for up to 10 minutes. Event source
