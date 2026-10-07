@@ -148,7 +148,7 @@ export const MapsGroundingModal: React.FC<MapsGroundingModalProps> = ({
                 </TacticalBadge>
               </div>
               <p className="text-[10px] font-mono text-isie-text-dim">
-                Real-time geospatial place verification, route analysis, and facility grounding
+                AI-assisted place search · verify provider results; no emergency route status
               </p>
             </div>
           </div>

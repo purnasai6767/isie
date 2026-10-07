@@ -39,7 +39,7 @@ export default function LandingPage() {
         <div className="inline-flex flex-wrap items-center justify-center gap-2 px-3 py-1.5 bg-white/[0.03] border border-white/10 rounded-sm mb-6 font-mono text-[11px] sm:text-xs text-isie-text-secondary max-w-full">
           <span className="w-2 h-2 rounded-full bg-isie-primary animate-ping shrink-0" />
           <span className="tracking-widest uppercase truncate">
-            STRATEGIC CRISIS & RELOCATION DECISION SUPPORT
+            SPATIAL INTELLIGENCE PROTOTYPE · NOT FOR EMERGENCY OPERATIONS
           </span>
         </div>
 
@@ -71,7 +71,7 @@ export default function LandingPage() {
 
         {/* Short Mission Concept */}
         <p className="text-sm sm:text-base md:text-lg text-isie-text-secondary max-w-3xl leading-relaxed mb-10 font-normal">
-          An AI-powered multi-level decision intelligence platform that transforms fragmented satellite, hydrological, weather, and demographic data into continuously updated hazard red zones, carrying capacity assessments, and prioritized relocation intelligence.
+          Explore global map imagery, NASA&apos;s limited natural-event catalog, and on-demand Open-Meteo forecasts. Hazard zones, capacity metrics, routes, and response scenarios are demonstration workflows—not live assessments or emergency instructions.
         </p>
 
         {/* Primary Action Group */}
@@ -92,11 +92,11 @@ export default function LandingPage() {
                 Hazard Red Zones
               </h3>
               <p className="text-xs text-isie-text-secondary leading-relaxed mb-3">
-                Fuses Satellite SAR + Doppler Radar + Elevation Models to delineate dynamic hazard boundaries.
+                Demonstrates synthetic hazard-zone mapping. No satellite SAR, weather radar, or verified boundary provider is connected.
               </p>
             </div>
             <div className="font-mono text-[10px] text-isie-text-dim uppercase tracking-wider pt-2 border-t border-white/5">
-              OUTPUT: RED | WARNING | SAFE
+              TABLETOP ONLY · NOT A VERIFIED RISK
             </div>
           </div>
 
@@ -113,11 +113,11 @@ export default function LandingPage() {
                 Carrying Capacity
               </h3>
               <p className="text-xs text-isie-text-secondary leading-relaxed mb-3">
-                Calculates population exposure, hospital beds, potable water reserves, and road severance risk.
+                Shows exercise or user-entered capacity fields. Population, hospital, water, and road-status datasets are not connected.
               </p>
             </div>
             <div className="font-mono text-[10px] text-isie-text-dim uppercase tracking-wider pt-2 border-t border-white/5">
-              OUTPUT: SAFE | WARNING | CRITICAL
+              USER-ENTERED / SYNTHETIC ONLY
             </div>
           </div>
 
@@ -134,11 +134,11 @@ export default function LandingPage() {
                 Relocation Priority
               </h3>
               <p className="text-xs text-isie-text-secondary leading-relaxed mb-3">
-                Prioritizes habitations using hazard severity, vulnerability metrics, and accessible shelter capacity.
+                Demonstrates a planning interface; verified routes, populations, travel times, and shelter capacities are unavailable.
               </p>
             </div>
             <div className="font-mono text-[10px] text-isie-text-dim uppercase tracking-wider pt-2 border-t border-white/5">
-              OUTPUT: RELOCATION INDEX (0-100)
+              NOT A VERIFIED PLAN · NOT FOR DISPATCH
             </div>
           </div>
 
@@ -155,7 +155,7 @@ export default function LandingPage() {
                 What-If Stress Testing
               </h3>
               <p className="text-xs text-isie-text-secondary leading-relaxed mb-3">
-                Runs scenario permutations across dam releases, rainfall anomalies, and route severances.
+                Runs fictional tabletop scenarios only. Outputs are not forecasts, measurements, or emergency recommendations.
               </p>
             </div>
             <div className="font-mono text-[10px] text-isie-text-dim uppercase tracking-wider pt-2 border-t border-white/5">

@@ -6,11 +6,11 @@ import { AuthProvider } from "@/lib/auth/AuthContext";
 export const metadata: Metadata = {
   title: "ISIE — Integrated Situation Intelligence Engine",
   description:
-    "Multi-agency disaster intelligence, hazard red-zone mapping, dynamic carrying capacity evaluation, and real-time operational crisis response command platform.",
+    "Spatial intelligence prototype with public event data, model weather forecasts, user-submitted records, and clearly labeled tabletop simulations.",
   openGraph: {
     title: "ISIE — Integrated Situation Intelligence Engine",
     description:
-      "Multi-agency disaster intelligence, hazard red-zone mapping, dynamic carrying capacity evaluation, and real-time operational crisis response command platform.",
+      "Spatial intelligence prototype with public event data, model weather forecasts, user-submitted records, and clearly labeled tabletop simulations.",
   },
 };
 

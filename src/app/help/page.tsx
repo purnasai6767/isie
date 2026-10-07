@@ -63,7 +63,7 @@ export default function HelpPage() {
           </div>
 
           <p className="text-xs text-isie-text-secondary leading-relaxed">
-            This prototype demonstrates map navigation, a limited NASA EONET natural-event catalog, synthetic tabletop scenarios, and authenticated workspace records. It does not connect national satellite, weather-radar, river-gauge, census, shelter, or routing systems and does not generate operational response decisions.
+            This prototype demonstrates map navigation, NASA EONET catalog entries, the USGS past-day earthquake feed, on-demand Open-Meteo model forecasts, synthetic tabletop scenarios, and authenticated workspace records. It does not connect national satellite, official weather-warning, river-gauge, census, shelter, or routing systems and does not generate operational response decisions.
           </p>
         </div>
 
@@ -95,7 +95,7 @@ export default function HelpPage() {
             ● Demo Environment & Prototype Notice
           </div>
           <p className="text-[11px] text-isie-text-secondary leading-relaxed">
-            Demo mode uses synthetic exercise data. Authenticated workspace records are user-entered and are not independently verified. NASA EONET is a limited natural-event catalog, not a complete hazard feed or emergency alert service. No IMD, CWC, ISRO, Copernicus, population, shelter, or routing provider is connected.
+            Demo mode uses synthetic exercise data. Authenticated workspace records are user-entered and are not independently verified. NASA EONET is a limited natural-event catalog, not a complete hazard feed or emergency alert service. Open-Meteo provides model forecasts, not official warnings or radar observations. No IMD, CWC, ISRO, Copernicus, population, shelter, or routing provider is connected.
           </p>
         </div>
       </div>

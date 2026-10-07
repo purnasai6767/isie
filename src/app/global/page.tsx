@@ -11,6 +11,8 @@ import { incidentService } from "@/lib/services/incidentService";
 import { IntelligenceEvent } from "@/lib/types/isie";
 import { useEonetFeed } from "@/lib/hooks/useEonetFeed";
 import type { EonetEvent } from "@/lib/types/eonet";
+import { useUsgsEarthquakeFeed } from "@/lib/hooks/useUsgsEarthquakeFeed";
+import type { UsgsEarthquake } from "@/lib/types/usgs";
 
 export default function GlobalSituationPage() {
   const { isDemoMode } = useAuth();
@@ -18,8 +20,10 @@ export default function GlobalSituationPage() {
   const [incidents, setIncidents] = useState<IntelligenceEvent[]>([]);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
   const [selectedEonetId, setSelectedEonetId] = useState<string | null>(null);
+  const [selectedEarthquakeId, setSelectedEarthquakeId] = useState<string | null>(null);
   const [selectedRegion, setSelectedRegion] = useState("ALL");
   const { feed, error: eonetError, loading: eonetLoading, refresh: refreshEonet } = useEonetFeed();
+  const { feed: earthquakeFeed, error: earthquakeError, loading: earthquakeLoading, refresh: refreshEarthquakes } = useUsgsEarthquakeFeed();
 
   useEffect(() => {
     setMounted(true);
@@ -74,7 +78,7 @@ export default function GlobalSituationPage() {
               </h1>
             </div>
             <p className="text-xs text-isie-text-secondary">
-              Published global imagery, NASA EONET natural-event catalog entries, and separate workspace reports. EONET coverage is limited and is not an emergency alert service.
+              Published global imagery, NASA EONET and USGS catalog entries, on-demand model weather, and separate workspace reports. These do not provide comprehensive hazard coverage or emergency alerts.
             </p>
           </div>
 
@@ -134,15 +138,30 @@ export default function GlobalSituationPage() {
               selectedIncidentId={selectedIncidentId}
               onSelectIncident={(inc) => {
                 setSelectedIncidentId(inc?.id || null);
-                if (inc) setSelectedEonetId(null);
+                if (inc) {
+                  setSelectedEonetId(null);
+                  setSelectedEarthquakeId(null);
+                }
               }}
               eonetEvents={feed?.events ?? []}
               selectedEonetId={selectedEonetId}
               onSelectEonetEvent={(event) => {
                 setSelectedEonetId(event?.id ?? null);
-                if (event) setSelectedIncidentId(null);
+                if (event) {
+                  setSelectedIncidentId(null);
+                  setSelectedEarthquakeId(null);
+                }
               }}
               isDemoMode={isDemoMode}
+              usgsEarthquakes={earthquakeFeed?.events ?? []}
+              selectedEarthquakeId={selectedEarthquakeId}
+              onSelectEarthquake={(event) => {
+                setSelectedEarthquakeId(event?.id ?? null);
+                if (event) {
+                  setSelectedEonetId(null);
+                  setSelectedIncidentId(null);
+                }
+              }}
             />
           ) : (
             <div className="w-full h-full min-h-[320px] bg-isie-bg-deep flex items-center justify-center font-mono text-xs text-isie-cyan/60 animate-pulse">
@@ -152,7 +171,7 @@ export default function GlobalSituationPage() {
         </div>
 
         {/* Regional Situation Grids */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 min-w-0">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 min-w-0">
           <div className="p-4 bg-isie-panel border border-white/10 rounded-sm min-w-0 flex flex-col justify-between space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-white/10">
               <span className="font-mono text-xs uppercase tracking-wider text-white font-semibold">
@@ -166,7 +185,11 @@ export default function GlobalSituationPage() {
               {incidents.map((inc) => (
                 <div
                   key={inc.id}
-                  onClick={() => setSelectedIncidentId(inc.id)}
+                  onClick={() => {
+                    setSelectedIncidentId(inc.id);
+                    setSelectedEonetId(null);
+                    setSelectedEarthquakeId(null);
+                  }}
                   className="p-2 bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 rounded-xs cursor-pointer transition-colors"
                 >
                   <div className="flex items-center justify-between mb-0.5">
@@ -214,6 +237,7 @@ export default function GlobalSituationPage() {
                     onClick={() => {
                       setSelectedEonetId(event.id);
                       setSelectedIncidentId(null);
+                      setSelectedEarthquakeId(null);
                     }}
                     className="min-w-0 flex-1 text-left disabled:cursor-default"
                   >
@@ -272,6 +296,65 @@ export default function GlobalSituationPage() {
                 <span className="font-bold">{otherSeverityCount}</span>
               </div>
             </div>
+          </div>
+
+          <div className="p-4 bg-isie-panel border border-white/10 rounded-sm flex flex-col space-y-3 min-w-0">
+            <div className="flex items-center justify-between gap-2 pb-2 border-b border-white/10">
+              <span className="font-mono text-xs uppercase tracking-wider text-white font-semibold">
+                USGS Past-Day Earthquakes
+              </span>
+              <TacticalBadge variant={earthquakeError ? "warning" : "muted"} size="sm">
+                {earthquakeError ? "FEED UNAVAILABLE" : earthquakeLoading ? "LOADING" : `${earthquakeFeed?.events.length ?? 0} EVENTS`}
+              </TacticalBadge>
+            </div>
+            <p className="text-[10px] leading-relaxed text-isie-text-dim">
+              USGS global earthquake catalog for the past day. Catalog completeness and magnitude thresholds vary; entries are not impact assessments or public warnings.
+            </p>
+            {earthquakeError && (
+              <div className="flex items-start justify-between gap-2 rounded border border-amber-500/20 bg-amber-950/10 p-2">
+                <p role="status" className="text-[10px] text-amber-200">{earthquakeError}</p>
+                <button type="button" onClick={refreshEarthquakes} className="shrink-0 rounded border border-amber-300/20 p-1.5 text-amber-200 hover:bg-amber-300/10" aria-label="Retry USGS earthquake feed">
+                  <RefreshCw className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+            <div className="max-h-52 space-y-1.5 overflow-y-auto pr-1 scrollbar-thin">
+              {(earthquakeFeed?.events ?? []).slice(0, 10).map((event: UsgsEarthquake) => (
+                <button
+                  key={event.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedEarthquakeId(event.id);
+                    setSelectedEonetId(null);
+                    setSelectedIncidentId(null);
+                  }}
+                  className={`w-full rounded border p-2 text-left transition-colors ${
+                    selectedEarthquakeId === event.id
+                      ? "border-orange-300/30 bg-orange-300/10"
+                      : "border-white/5 bg-white/[0.02] hover:bg-white/[0.05]"
+                  }`}
+                >
+                  <span className="flex items-center justify-between gap-2 font-mono text-[10px] font-semibold text-orange-200">
+                    <span className="truncate">{event.place}</span>
+                    <span className="shrink-0">M {event.magnitude ?? "—"}</span>
+                  </span>
+                  <span className="mt-0.5 block text-[9px] text-isie-text-dim">
+                    {event.observedAt ? new Date(event.observedAt).toLocaleString(undefined, { timeZone: "UTC", timeZoneName: "short" }) : "Event time unavailable"} · depth {event.coordinates.depthKm ?? "—"} km
+                  </span>
+                </button>
+              ))}
+              {!earthquakeLoading && !earthquakeError && earthquakeFeed?.events.length === 0 && (
+                <p className="p-2 text-[10px] text-isie-text-dim">USGS returned no events in this past-day feed.</p>
+              )}
+            </div>
+            {earthquakeFeed && (
+              <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-2 font-mono text-[9px] text-isie-text-dim">
+                <span>Retrieved {new Date(earthquakeFeed.fetchedAt).toLocaleString()}</span>
+                <a href={earthquakeFeed.sourceUrl} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-1 text-orange-200 hover:underline">
+                  USGS <ExternalLink className="h-3 w-3" />
+                </a>
+              </div>
+            )}
           </div>
         </div>
       </div>

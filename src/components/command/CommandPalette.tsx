@@ -73,7 +73,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         onClose();
         setSearchModalOpen(true);
       },
-      description: "Query real-time IMD, CWC, NDMA weather advisories via gemini-3.5-flash googleSearch tool",
+      description: "Ask a web-grounded AI query; responses are not official advisories and require independent verification",
     },
     {
       id: "cmd-maps-grounding",
@@ -85,7 +85,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
         onClose();
         setMapsModalOpen(true);
       },
-      description: "Query real-time places, disaster routes, and infrastructure via gemini-3.5-flash",
+      description: "Search for place information; results are not verified route conditions or emergency-routing guidance",
     },
     {
       id: "cmd-audio-transcribe",

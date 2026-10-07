@@ -6,11 +6,13 @@ import { Database, ExternalLink, Globe2, RefreshCw, Server, ShieldAlert } from "
 import { TacticalBadge } from "@/components/ui/TacticalBadge";
 import { useEonetFeed } from "@/lib/hooks/useEonetFeed";
 import { verifyFirestoreConnection } from "@/lib/firebase/client";
+import { useUsgsEarthquakeFeed } from "@/lib/hooks/useUsgsEarthquakeFeed";
 
 type ProbeState = "NOT CHECKED" | "CHECKING" | "CONNECTED" | "UNAVAILABLE";
 
 export default function SystemStatusPage() {
   const { feed, error, loading, refresh } = useEonetFeed();
+  const usgs = useUsgsEarthquakeFeed();
   const [firestoreState, setFirestoreState] = useState<ProbeState>("NOT CHECKED");
   const [checkingFirestore, setCheckingFirestore] = useState(false);
 
@@ -94,6 +96,46 @@ export default function SystemStatusPage() {
               </div>
             )}
             {error && <p role="alert" className="mt-3 text-[11px] text-amber-200">{error}</p>}
+          </div>
+
+          <div className="rounded border border-white/10 bg-isie-panel p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Globe2 className="h-4 w-4 text-orange-300" />
+                <div>
+                  <div className="font-mono text-xs font-semibold text-white">USGS past-day earthquake catalog</div>
+                  <div className="mt-1 text-[11px] text-isie-text-dim">
+                    Global catalog feed, not a complete seismic impact assessment or emergency alert.
+                  </div>
+                </div>
+              </div>
+              <TacticalBadge variant={badgeVariant(usgs.error ? "UNAVAILABLE" : usgs.loading ? "CHECKING" : "CONNECTED")} size="sm">
+                {usgs.error ? "UNAVAILABLE" : usgs.loading ? "CHECKING" : "CONNECTED"}
+              </TacticalBadge>
+            </div>
+            {usgs.feed && (
+              <div className="mt-3 border-t border-white/10 pt-2 text-[10px] text-isie-text-dim">
+                {usgs.feed.events.length} events · retrieved {new Date(usgs.feed.fetchedAt).toLocaleString(undefined, { timeZone: "UTC", timeZoneName: "short" })}
+              </div>
+            )}
+            {usgs.error && <p role="alert" className="mt-3 text-[11px] text-amber-200">{usgs.error}</p>}
+          </div>
+
+          <div className="rounded border border-white/10 bg-isie-panel p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Globe2 className="h-4 w-4 text-sky-300" />
+                <div>
+                  <div className="font-mono text-xs font-semibold text-white">Open-Meteo global weather models</div>
+                  <div className="mt-1 text-[11px] text-isie-text-dim">
+                    On-demand geocoding and model forecasts are available from the Sources page; forecast coverage is not an official warning or ground observation.
+                  </div>
+                </div>
+              </div>
+              <a href="/sources" className="rounded border border-sky-300/20 px-2.5 py-1.5 font-mono text-[10px] text-sky-200 hover:bg-sky-300/10">
+                OPEN SOURCES
+              </a>
+            </div>
           </div>
 
           <div className="rounded border border-white/10 bg-isie-panel p-4">

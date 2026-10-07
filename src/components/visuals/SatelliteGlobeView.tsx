@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import type { IntelligenceEvent } from "@/lib/types/isie";
 import type { EonetEvent } from "@/lib/types/eonet";
+import type { UsgsEarthquake } from "@/lib/types/usgs";
 
 type Surface = "SATELLITE" | "TACTICAL" | "NIGHT";
 
@@ -108,6 +109,9 @@ interface SatelliteGlobeViewProps {
   eonetEvents?: EonetEvent[];
   selectedEonetId?: string | null;
   onSelectEonetEvent?: (event: EonetEvent | null) => void;
+  usgsEarthquakes?: UsgsEarthquake[];
+  selectedEarthquakeId?: string | null;
+  onSelectEarthquake?: (event: UsgsEarthquake | null) => void;
   isDemoMode?: boolean;
 }
 
@@ -119,6 +123,9 @@ export default function SatelliteGlobeView({
   eonetEvents = [],
   selectedEonetId = null,
   onSelectEonetEvent = () => {},
+  usgsEarthquakes = [],
+  selectedEarthquakeId = null,
+  onSelectEarthquake = () => {},
   isDemoMode = false,
 }: SatelliteGlobeViewProps) {
   const mapRef = useRef<MapRef>(null);
@@ -131,6 +138,7 @@ export default function SatelliteGlobeView({
   const mapStyle = useMemo(() => getMapStyle(surface, Boolean(token)), [surface, token]);
   const selectedIncident = incidents.find((incident) => incident.id === selectedIncidentId);
   const selectedEonetEvent = eonetEvents.find((event) => event.id === selectedEonetId);
+  const selectedEarthquake = usgsEarthquakes.find((event) => event.id === selectedEarthquakeId);
   const target = REGION_TARGETS[selectedRegion] ?? REGION_TARGETS.ALL;
 
   useEffect(() => {
@@ -345,6 +353,26 @@ export default function SatelliteGlobeView({
             </button>
           </Marker>
         ))}
+        {usgsEarthquakes.map((event) => (
+          <Marker
+            key={`usgs-${event.id}`}
+            longitude={event.coordinates.longitude}
+            latitude={event.coordinates.latitude}
+            anchor="center"
+            onClick={(clickEvent) => {
+              clickEvent.originalEvent.stopPropagation();
+              onSelectEarthquake(event);
+            }}
+          >
+            <button
+              type="button"
+              aria-label={`USGS earthquake: ${event.title}`}
+              className="group flex h-8 w-8 items-center justify-center rounded-full border border-orange-100/50 bg-orange-950/90 shadow-[0_0_18px_rgba(0,0,0,0.8)] transition-transform hover:scale-125"
+            >
+              <span className="h-3 w-3 rounded-full bg-orange-300 ring-4 ring-orange-200/20" />
+            </button>
+          </Marker>
+        ))}
         {selectedIncident && (
           <Popup
             longitude={selectedIncident.coordinates.lng}
@@ -395,6 +423,43 @@ export default function SatelliteGlobeView({
                   className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold text-cyan-800 hover:underline"
                 >
                   Open event source <ExternalLink className="h-3 w-3" />
+                </a>
+              )}
+            </div>
+          </Popup>
+        )}
+        {selectedEarthquake && (
+          <Popup
+            longitude={selectedEarthquake.coordinates.longitude}
+            latitude={selectedEarthquake.coordinates.latitude}
+            anchor="bottom"
+            onClose={() => onSelectEarthquake(null)}
+            closeButton
+            closeOnClick={false}
+            className="isie-map-popup"
+          >
+            <div className="min-w-48 text-slate-900">
+              <p className="font-mono text-[10px] font-bold">USGS · PAST-DAY EARTHQUAKE FEED</p>
+              <p className="mt-1 text-xs font-semibold">{selectedEarthquake.title}</p>
+              <p className="mt-1 text-[10px] text-slate-600">
+                Magnitude {selectedEarthquake.magnitude ?? "unavailable"} · depth {selectedEarthquake.coordinates.depthKm ?? "unavailable"} km
+              </p>
+              {selectedEarthquake.observedAt && (
+                <p className="mt-1 text-[10px] text-slate-600">
+                  Event time: {new Date(selectedEarthquake.observedAt).toLocaleString(undefined, { timeZone: "UTC", timeZoneName: "short" })}
+                </p>
+              )}
+              <p className="mt-2 border-t border-slate-200 pt-1 font-mono text-[8px] uppercase tracking-wider text-orange-800">
+                Catalog event · not an alert or impact assessment
+              </p>
+              {selectedEarthquake.sourceUrl && (
+                <a
+                  href={selectedEarthquake.sourceUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-2 inline-flex items-center gap-1 text-[10px] font-semibold text-orange-800 hover:underline"
+                >
+                  Open USGS event <ExternalLink className="h-3 w-3" />
                 </a>
               )}
             </div>
@@ -485,7 +550,7 @@ export default function SatelliteGlobeView({
         {isDemoMode
           ? "Demo incident markers · not live"
           : "Workspace incident markers · unverified"}
-        {eonetEvents.length > 0 && " · NASA EONET natural-event catalog"}
+        {(eonetEvents.length > 0 || usgsEarthquakes.length > 0) && " · NASA EONET and USGS catalog events"}
       </div>
     </div>
   );

@@ -2,8 +2,8 @@
 
 ISIE is a spatial intelligence dashboard prototype. Incident and resource
 records saved by authenticated users are workspace submissions, not
-independently verified public-safety data. No authoritative hazard, weather,
-population, shelter-capacity, or road-status provider is connected by default.
+independently verified public-safety data. No national hazard, official warning,
+population, shelter-capacity, or road-status provider is connected.
 
 ## Geospatial dashboard
 
@@ -31,6 +31,20 @@ geometry appear as map markers; other catalog entries remain in the list.
 EONET is a limited natural-event catalog, not comprehensive incident coverage,
 an emergency alert service, or proof of current ground conditions. Upstream
 errors appear as unavailable rather than being replaced with synthetic events.
+
+The `/global` and `/sources` views also retrieve the USGS past-day earthquake
+GeoJSON catalog through `/api/usgs-earthquakes`, cached for up to five minutes.
+Catalog event locations link to USGS records and are displayed separately from
+user-submitted reports. The feed is not a seismic impact assessment, local
+warning service, or complete hazard inventory.
+
+The `/sources` page also provides on-demand place lookup and current/7-day
+weather-model forecasts through `/api/public-weather`. Forecast responses are
+validated, cached briefly, and include the provider retrieval time. Open-Meteo
+combines public weather model outputs; forecasts are not official warnings,
+radar observations, or verified ground conditions. Coverage and model resolution
+vary by location. The free API is limited to non-commercial use and requires
+attribution; see [Open-Meteo's terms and attribution](https://open-meteo.com/en/terms).
 
 The `/global` map supports worldwide map navigation and place search; this does
 not imply worldwide incident coverage. The `/geospatial` scenario visualization

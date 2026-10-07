@@ -145,7 +145,7 @@ export const SearchGroundingModal: React.FC<SearchGroundingModalProps> = ({
                 </TacticalBadge>
               </div>
               <p className="text-[11px] font-mono text-isie-text-muted mt-0.5">
-                Up-to-date real-time web verification powered by Google Search Tool
+                AI-generated web summary with search citations · not verified or an official advisory
               </p>
             </div>
           </div>
