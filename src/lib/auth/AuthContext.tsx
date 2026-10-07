@@ -5,6 +5,7 @@ import {
   auth,
   googleProvider,
   signInWithPopup,
+  signInWithRedirect,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   fbSignOut,
@@ -31,7 +32,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isDemoMode: boolean;
   login: (email: string, pass: string) => Promise<{ success: boolean; error?: string }>;
-  loginWithGoogle: () => Promise<{ success: boolean; error?: string; cancelled?: boolean }>;
+  loginWithGoogle: () => Promise<{ success: boolean; error?: string; cancelled?: boolean; redirecting?: boolean }>;
   signup: (data: { name: string; email: string; password: string; role?: string; organization?: string }) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<{ success: boolean; error?: string }>;
 }
@@ -67,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => unsubscribe();
   }, []);
 
-  const loginWithGoogle = async (): Promise<{ success: boolean; error?: string; cancelled?: boolean }> => {
+  const loginWithGoogle = async (): Promise<{ success: boolean; error?: string; cancelled?: boolean; redirecting?: boolean }> => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
       if (result.user) {
@@ -108,10 +109,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       if (errorCode === "auth/popup-blocked" || errorMsg.includes("popup-blocked")) {
-        return {
-          success: false,
-          error: "Popup window was blocked by your browser. Please allow popups for this site.",
-        };
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          return { success: false, redirecting: true };
+        } catch (redirectError: any) {
+          console.error("Google redirect sign in error:", redirectError);
+          return {
+            success: false,
+            error: redirectError?.message || "Google sign-in redirect failed. Try allowing popups for this site.",
+          };
+        }
       }
 
       console.error("Google sign in error:", err);

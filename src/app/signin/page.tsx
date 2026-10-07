@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -10,6 +10,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthContext";
+import { auth, getRedirectResult } from "@/lib/firebase/client";
 import { TacticalBadge } from "@/components/ui/TacticalBadge";
 import { TacticalButton } from "@/components/ui/TacticalButton";
 
@@ -30,6 +31,7 @@ export default function SignInPage() {
     setIsGoogleLoading(true);
     setError(null);
     const res = await loginWithGoogle();
+    if (res.redirecting) return;
     setIsGoogleLoading(false);
     if (res.success) {
       setSuccessInfo({
@@ -48,6 +50,34 @@ export default function SignInPage() {
       setError(res.error || "Google Sign-In failed.");
     }
   };
+
+  useEffect(() => {
+    let active = true;
+
+    getRedirectResult(auth)
+      .then((result) => {
+        if (!active || !result?.user) return;
+        setSuccessInfo({
+          show: true,
+          operatorName: result.user.email || "Authenticated Google account",
+        });
+        router.replace("/dashboard");
+      })
+      .catch((redirectError: { code?: string; message?: string }) => {
+        if (!active) return;
+        console.error("Google redirect result error:", redirectError);
+        if (redirectError.code === "auth/unauthorized-domain") {
+          setError("This website domain is not authorized for Google sign-in in Firebase.");
+        } else {
+          setError(redirectError.message || "Google sign-in could not be completed. Please try again.");
+        }
+        setIsGoogleLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [router]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();

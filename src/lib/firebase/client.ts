@@ -6,6 +6,8 @@ import {
   Auth,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
@@ -278,6 +280,8 @@ export function subscribeTacticalLogs(
 // Export Auth & Firestore Primitives
 export {
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
