@@ -31,54 +31,89 @@ function providerUnavailable() {
 }
 
 export async function GET(request: NextRequest) {
-  const place = request.nextUrl.searchParams.get("place")?.trim();
-  if (!place || place.length < 2 || place.length > 100) {
-    return NextResponse.json(
-      { error: "Enter a place name between 2 and 100 characters." },
-      { status: 400 }
-    );
-  }
+  const params = request.nextUrl.searchParams;
+  const place = params.get("place")?.trim();
+  const rawLatitude = params.get("latitude");
+  const rawLongitude = params.get("longitude");
+  const hasCoordinates = rawLatitude !== null || rawLongitude !== null;
+  let latitude: number;
+  let longitude: number;
+  let locationName: string;
+  let admin1: string | null = null;
+  let country = "";
 
   try {
-    const geocodingUrl = new URL(GEOCODING_URL);
-    geocodingUrl.searchParams.set("name", place);
-    geocodingUrl.searchParams.set("count", "1");
-    geocodingUrl.searchParams.set("language", "en");
-    geocodingUrl.searchParams.set("format", "json");
+    if (hasCoordinates) {
+      const parsedLatitude = rawLatitude === null ? Number.NaN : Number(rawLatitude);
+      const parsedLongitude = rawLongitude === null ? Number.NaN : Number(rawLongitude);
+      if (
+        rawLatitude?.trim() === "" ||
+        rawLongitude?.trim() === "" ||
+        !validCoordinate(parsedLatitude, -90, 90) ||
+        !validCoordinate(parsedLongitude, -180, 180)
+      ) {
+        return NextResponse.json(
+          { error: "Provide valid latitude and longitude coordinates." },
+          { status: 400 }
+        );
+      }
+      latitude = parsedLatitude;
+      longitude = parsedLongitude;
+      locationName = params.get("label")?.trim().slice(0, 100) || "Selected region";
+      country = "Regional forecast";
+    } else {
+      if (!place || place.length < 2 || place.length > 100) {
+        return NextResponse.json(
+          { error: "Enter a place name between 2 and 100 characters." },
+          { status: 400 }
+        );
+      }
 
-    const geocodingResponse = await fetch(geocodingUrl, {
-      headers: { Accept: "application/json" },
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-      next: { revalidate: 86_400 },
-    });
-    if (!geocodingResponse.ok) {
-      console.error(`Open-Meteo geocoding returned HTTP ${geocodingResponse.status}.`);
-      return providerUnavailable();
-    }
+      const geocodingUrl = new URL(GEOCODING_URL);
+      geocodingUrl.searchParams.set("name", place);
+      geocodingUrl.searchParams.set("count", "1");
+      geocodingUrl.searchParams.set("language", "en");
+      geocodingUrl.searchParams.set("format", "json");
 
-    const geocodingPayload: unknown = await geocodingResponse.json();
-    if (!isRecord(geocodingPayload) || !Array.isArray(geocodingPayload.results)) {
-      console.error("Open-Meteo geocoding returned an unexpected response format.");
-      return providerUnavailable();
-    }
+      const geocodingResponse = await fetch(geocodingUrl, {
+        headers: { Accept: "application/json" },
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+        next: { revalidate: 86_400 },
+      });
+      if (!geocodingResponse.ok) {
+        console.error(`Open-Meteo geocoding returned HTTP ${geocodingResponse.status}.`);
+        return providerUnavailable();
+      }
 
-    const placeResult = geocodingPayload.results[0];
-    if (!isRecord(placeResult)) {
-      return NextResponse.json(
-        { error: `No matching place was found for "${place}".` },
-        { status: 404 }
-      );
-    }
+      const geocodingPayload: unknown = await geocodingResponse.json();
+      if (!isRecord(geocodingPayload) || !Array.isArray(geocodingPayload.results)) {
+        console.error("Open-Meteo geocoding returned an unexpected response format.");
+        return providerUnavailable();
+      }
 
-    const { latitude, longitude } = placeResult;
-    if (
-      typeof placeResult.name !== "string" ||
-      typeof placeResult.country !== "string" ||
-      !validCoordinate(latitude, -90, 90) ||
-      !validCoordinate(longitude, -180, 180)
-    ) {
-      console.error("Open-Meteo geocoding returned an invalid location.");
-      return providerUnavailable();
+      const placeResult = geocodingPayload.results[0];
+      if (!isRecord(placeResult)) {
+        return NextResponse.json(
+          { error: `No matching place was found for "${place}".` },
+          { status: 404 }
+        );
+      }
+
+      if (
+        typeof placeResult.name !== "string" ||
+        typeof placeResult.country !== "string" ||
+        !validCoordinate(placeResult.latitude, -90, 90) ||
+        !validCoordinate(placeResult.longitude, -180, 180)
+      ) {
+        console.error("Open-Meteo geocoding returned an invalid location.");
+        return providerUnavailable();
+      }
+
+      latitude = placeResult.latitude;
+      longitude = placeResult.longitude;
+      locationName = placeResult.name;
+      admin1 = typeof placeResult.admin1 === "string" ? placeResult.admin1 : null;
+      country = placeResult.country;
     }
 
     const forecastUrl = new URL(FORECAST_URL);
@@ -150,9 +185,9 @@ export async function GET(request: NextRequest) {
       attributionUrl: "https://open-meteo.com/",
       fetchedAt: new Date().toISOString(),
       location: {
-        name: placeResult.name,
-        admin1: typeof placeResult.admin1 === "string" ? placeResult.admin1 : null,
-        country: placeResult.country,
+        name: locationName,
+        admin1,
+        country,
         latitude,
         longitude,
         timezone: typeof forecastPayload.timezone === "string" ? forecastPayload.timezone : "UTC",
