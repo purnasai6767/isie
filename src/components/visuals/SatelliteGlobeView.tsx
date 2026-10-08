@@ -17,6 +17,7 @@ import {
 import type { IntelligenceEvent } from "@/lib/types/isie";
 import type { EonetEvent } from "@/lib/types/eonet";
 import type { UsgsEarthquake } from "@/lib/types/usgs";
+import { MAPBOX_ACCESS_TOKEN } from "@/lib/mapbox";
 
 type Surface = "SATELLITE" | "TACTICAL" | "NIGHT";
 type ImageryProvider = "mapbox" | "esri" | "carto";
@@ -149,7 +150,9 @@ function getMapStyle(
           id,
           {
             ...source,
-            tiles: source.tiles.map((tileUrl) => new URL(tileUrl, tileOrigin).toString()),
+            tiles: source.tiles.map((tileUrl) =>
+              new URL(tileUrl, tileOrigin).toString().replace(/%7B/gi, "{").replace(/%7D/gi, "}")
+            ),
           },
         ];
       })
@@ -199,7 +202,7 @@ export default function SatelliteGlobeView({
   isDemoMode = false,
 }: SatelliteGlobeViewProps) {
   const mapRef = useRef<MapRef>(null);
-  const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+  const token = MAPBOX_ACCESS_TOKEN;
   const [surface, setSurface] = useState<Surface>("SATELLITE");
   const [mapError, setMapError] = useState("");
   const [provider, setProvider] = useState<ImageryProvider>(token ? "mapbox" : "esri");
@@ -290,6 +293,12 @@ export default function SatelliteGlobeView({
   }, [onSelectEonetEvent, onSelectIncident, target]);
 
   const handleMapError = useCallback((_event: ErrorEvent) => {
+    if (!token) {
+      setMapError(
+        'A valid Mapbox public token is required for the 3D map engine. Set NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN to a Mapbox token beginning with "pk.".'
+      );
+      return;
+    }
     if (provider === "mapbox") {
       setProvider("esri");
       setMapError("");
@@ -302,7 +311,7 @@ export default function SatelliteGlobeView({
       return;
     }
     setMapError("Map tiles are unavailable from Mapbox, Esri, and CARTO. Check network access, then retry.");
-  }, [provider]);
+  }, [provider, token]);
 
   const retryImagery = () => {
     setMapError("");

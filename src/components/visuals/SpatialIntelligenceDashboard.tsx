@@ -7,6 +7,7 @@ import { H3HexagonLayer } from "@deck.gl/geo-layers";
 import { FlyToInterpolator, type MapViewState } from "@deck.gl/core";
 import MapboxMap, { type MapRef } from "react-map-gl/mapbox";
 import { latLngToCell } from "h3-js";
+import { MAPBOX_ACCESS_TOKEN } from "@/lib/mapbox";
 import {
   Activity,
   AlertTriangle,
@@ -182,7 +183,7 @@ export default function SpatialIntelligenceDashboard() {
     bearing: -16,
   });
   const mapRef = useRef<MapRef>(null);
-  const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
+  const token = MAPBOX_ACCESS_TOKEN;
   const region = REGIONS.find((item) => item.id === regionId) ?? REGIONS[0];
 
   useEffect(() => {

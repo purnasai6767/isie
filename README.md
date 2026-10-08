@@ -14,14 +14,15 @@ Google Maps browser keys are public client keys; restrict them by website,
 API, and quota in their provider consoles.
 
 The dashboard uses Mapbox's dark-v11 style and terrain DEM when
-`NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` is configured. Without a token, the globe
-uses published Esri imagery tiles, and the `/geospatial` dashboard shows a
-provider setup prompt rather than claiming a live feed.
+`NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN` contains a valid Mapbox public token
+(`pk.*`). Mapbox GL JS requires this token even when the app falls back to
+published Esri raster tiles. Without a valid Mapbox token, the globe reports a
+configuration error rather than attempting to use a Google Maps key as a
+Mapbox token. The `/geospatial` dashboard shows a provider setup prompt.
 
 The `/global` view uses a real, interactive globe and published satellite-map
-tiles. It uses Mapbox satellite imagery and terrain when the token is
-configured, and Esri satellite tiles when no token is configured. If a provider
-fails, the map tries the next available provider and can fall back to a
+tiles. It uses Mapbox satellite imagery and terrain when the Mapbox token is
+configured. If a provider fails, the map tries Esri satellite tiles and can fall back to a
 CARTO/OpenStreetMap basemap; the active provider is labeled in the map. This
 fallback is a street map, not satellite imagery. Satellite tiles are not a
 live sensor feed and may not represent current ground conditions. If all tile
