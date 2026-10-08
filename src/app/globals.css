@@ -3,6 +3,16 @@
 @tailwind utilities;
 @import "leaflet/dist/leaflet.css";
 
+.maplibregl-canvas-container,
+.maplibregl-control-container {
+  position: absolute;
+  inset: 0;
+}
+
+.maplibregl-control-container {
+  pointer-events: none;
+}
+
 :root {
   --background: #05070b;
   --foreground: #f5f7fa;

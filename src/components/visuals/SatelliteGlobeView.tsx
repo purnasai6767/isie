@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Map, { Marker, NavigationControl, Popup, ScaleControl, type MapRef } from "react-map-gl/mapbox";
-import type { ErrorEvent, StyleSpecification } from "mapbox-gl";
+import type { StyleSpecification } from "mapbox-gl";
 import {
   Search,
   Crosshair,
@@ -18,6 +18,7 @@ import type { IntelligenceEvent } from "@/lib/types/isie";
 import type { EonetEvent } from "@/lib/types/eonet";
 import type { UsgsEarthquake } from "@/lib/types/usgs";
 import { MAPBOX_ACCESS_TOKEN } from "@/lib/mapbox";
+import MapLibreGlobeFallback, { type GlobeCameraHandle } from "./MapLibreGlobeFallback";
 
 type Surface = "SATELLITE" | "TACTICAL" | "NIGHT";
 type ImageryProvider = "mapbox" | "esri" | "carto";
@@ -202,6 +203,7 @@ export default function SatelliteGlobeView({
   isDemoMode = false,
 }: SatelliteGlobeViewProps) {
   const mapRef = useRef<MapRef>(null);
+  const mapLibreRef = useRef<GlobeCameraHandle>(null);
   const token = MAPBOX_ACCESS_TOKEN;
   const [surface, setSurface] = useState<Surface>("SATELLITE");
   const [mapError, setMapError] = useState("");
@@ -218,9 +220,24 @@ export default function SatelliteGlobeView({
   const selectedEonetEvent = eonetEvents.find((event) => event.id === selectedEonetId);
   const selectedEarthquake = usgsEarthquakes.find((event) => event.id === selectedEarthquakeId);
   const target = REGION_TARGETS[selectedRegion] ?? REGION_TARGETS.ALL;
+  const flyToMap = useCallback((options: {
+    center: [number, number];
+    zoom: number;
+    pitch?: number;
+    bearing?: number;
+    duration?: number;
+    essential?: boolean;
+  }) => {
+    if (token) mapRef.current?.flyTo(options);
+    else mapLibreRef.current?.flyTo(options);
+  }, [token]);
+  const getMapZoom = useCallback(
+    () => (token ? mapRef.current?.getZoom() : mapLibreRef.current?.getZoom()) ?? target.zoom,
+    [target.zoom, token]
+  );
 
   useEffect(() => {
-    const map = mapRef.current?.getMap();
+    const map = token ? mapRef.current?.getMap() : undefined;
     if (!map) return;
 
     const enableTerrain = () => {
@@ -244,43 +261,45 @@ export default function SatelliteGlobeView({
   }, [mapStyle, provider, surface, token]);
 
   useEffect(() => {
-    mapRef.current?.flyTo({
+    flyToMap({
       center: [target.longitude, target.latitude],
       zoom: target.zoom,
       pitch: target.pitch,
       duration: 1400,
       essential: true,
     });
-  }, [target.latitude, target.longitude, target.pitch, target.zoom]);
+  }, [flyToMap, target.latitude, target.longitude, target.pitch, target.zoom]);
 
   useEffect(() => {
     if (!selectedIncident) return;
-    mapRef.current?.flyTo({
+    flyToMap({
       center: [selectedIncident.coordinates.lng, selectedIncident.coordinates.lat],
-      zoom: Math.max(mapRef.current.getZoom(), 6.5),
+      zoom: Math.max(getMapZoom(), 6.5),
       pitch: 40,
       duration: 1200,
       essential: true,
     });
-  }, [selectedIncident]);
+  }, [flyToMap, getMapZoom, selectedIncident]);
 
   useEffect(() => {
     if (!selectedEonetEvent?.location) return;
-    mapRef.current?.flyTo({
+    flyToMap({
       center: [selectedEonetEvent.location.longitude, selectedEonetEvent.location.latitude],
-      zoom: Math.max(mapRef.current.getZoom(), 4),
+      zoom: Math.max(getMapZoom(), 4),
       pitch: 35,
       duration: 1200,
       essential: true,
     });
   }, [
+    flyToMap,
+    getMapZoom,
     selectedEonetId,
     selectedEonetEvent?.location?.latitude,
     selectedEonetEvent?.location?.longitude,
   ]);
 
   const resetView = useCallback(() => {
-    mapRef.current?.flyTo({
+    flyToMap({
       center: [target.longitude, target.latitude],
       zoom: target.zoom,
       pitch: target.pitch,
@@ -290,9 +309,9 @@ export default function SatelliteGlobeView({
     });
     onSelectIncident(null);
     onSelectEonetEvent(null);
-  }, [onSelectEonetEvent, onSelectIncident, target]);
+  }, [flyToMap, onSelectEonetEvent, onSelectIncident, target]);
 
-  const handleMapError = useCallback((_event: ErrorEvent) => {
+  const handleMapError = useCallback(() => {
     if (!token) {
       setMapError(
         'A valid Mapbox public token is required for the 3D map engine. Set NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN to a Mapbox token beginning with "pk.".'
@@ -382,7 +401,7 @@ export default function SatelliteGlobeView({
         throw new Error("No mapped city, state, or place matched that search.");
       }
 
-      mapRef.current?.flyTo({
+      flyToMap({
         center: [longitude, latitude],
         zoom: 8,
         pitch: 45,
@@ -405,6 +424,7 @@ export default function SatelliteGlobeView({
 
   return (
     <div className="absolute inset-0 overflow-hidden bg-[#070b11]">
+      {token ? (
       <Map
         ref={mapRef}
         mapboxAccessToken={token}
@@ -584,6 +604,25 @@ export default function SatelliteGlobeView({
           </Popup>
         )}
       </Map>
+      ) : (
+        <MapLibreGlobeFallback
+          ref={mapLibreRef}
+          center={[target.longitude, target.latitude]}
+          zoom={target.zoom}
+          pitch={target.pitch}
+          surface={surface}
+          incidents={incidents}
+          eonetEvents={eonetEvents}
+          earthquakes={usgsEarthquakes}
+          selectedIncidentId={selectedIncidentId}
+          selectedEonetId={selectedEonetId}
+          selectedEarthquakeId={selectedEarthquakeId}
+          onSelectIncident={onSelectIncident}
+          onSelectEonetEvent={onSelectEonetEvent}
+          onSelectEarthquake={onSelectEarthquake}
+          onLoad={() => setMapError("")}
+        />
+      )}
 
       <div className="pointer-events-none absolute left-3 top-3 z-10 flex max-w-[calc(100%-1.5rem)] flex-wrap gap-1 rounded border border-white/10 bg-[#080e17]/90 p-1 backdrop-blur">
         {surfaceOptions.map(({ id, label, icon: Icon }) => (

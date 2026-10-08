@@ -9,6 +9,7 @@
 # next.js
 /.next/
 /out/
+/public/maplibre-gl-worker.mjs
 
 # production
 /build

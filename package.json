@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/copy-maplibre-worker.mjs",
     "dev": "NODE_OPTIONS='--max-old-space-size=1024' next dev -p 3000",
+    "prebuild": "node scripts/copy-maplibre-worker.mjs",
     "build": "NODE_ENV=production next build && node scripts/copy-standalone-assets.mjs",
     "start": "next start",
     "lint": "tsc --noEmit"
@@ -25,11 +27,12 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^0.475.0",
     "mapbox-gl": "^3.32.0",
+    "maplibre-gl": "^6.13.0",
     "next": "^15.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "recharts": "^3.10.1",
     "react-map-gl": "^8.1.3",
+    "recharts": "^3.10.1",
     "tailwind-merge": "^3.0.2",
     "three": "^0.174.0"
   },
